@@ -11,32 +11,53 @@ export class Schema extends ColySchema {
 		world: World
 	} = {} as any
 
+	enableBidirectional = false
 	serverHandlers!: Map<string, Function>
 	clientHandlers!: Map<string, Function>
 	eventHandlers = new Map<string, Function[]>()
 
 	@type("string") id: string = uniqid()
 
-	sync<T extends Schema>(this: T) {
+	sync<T extends Schema, Field extends FieldKeys<T>>(this: T) {
 		const schema = this
 		return new Proxy(
 			{},
 			{
 				// TODO: implement setter, if invoking set, then make the rpc changes sync to client
 				get(target, key: string) {
-					const handler = schema.serverHandlers.get(key)
-					if (handler) {
-						// schema.log(`Invoking server method "${key}" on Schema "${schema.constructor.name}"!`);
-						return (...args: any[]) => {
-							if (schema.___.world.isServerOnly()) {
-								handler.bind(schema)(...args)
-								// only broadcast to other clients if it's server only
-								schema.___.world.room.broadcast("rpc", {
-									id: schema.id,
-									method: key,
-									args,
-								})
+					if (!schema[key as keyof typeof schema]) {
+						throw new Error(
+							`Method "${key}" not found on Schema "${schema.constructor.name}"!`
+						)
+					}
+
+					const normalHandler = schema[key as keyof typeof schema] as Function
+
+					return (...args: any[]) => {
+						normalHandler.bind(schema)(...args)
+
+						// sync to remote
+
+						if (schema.___.world.isServerOnly()) {
+							// sync to remote clients if it's server only
+							schema.___.world.room.broadcast("rpc", {
+								id: schema.id,
+								method: key,
+								args,
+							})
+						} else if (schema.___.world.isClientOnly()) {
+							if (!schema.enableBidirectional) {
+								throw new Error(
+									"Are you trying to sync some methods on client to the server? If so, see document about enableBidirectional!"
+								)
 							}
+
+							// sync to remote server if it's client only
+							schema.___.world.room.send("rpc", {
+								id: schema.id,
+								method: key,
+								args,
+							})
 						}
 					}
 
@@ -45,7 +66,7 @@ export class Schema extends ColySchema {
 					)
 				},
 			}
-		) as Omit<T, keyof Schema | FieldKeys<T>>
+		) as Omit<T, keyof Schema>
 	}
 
 	addListener<T extends Schema, EventKey extends NewMethodOnly<T>>(

@@ -1,15 +1,15 @@
-import { Room } from "@colyseus/core"
+import { Room as RoomServer } from "@colyseus/core"
 import { Room as RoomClient } from "colyseus.js"
 
 import { Schema } from "./schema/Schema"
-import { addWorldRecursive, pairClientServer } from "./utils/common"
+import { pairClientServer } from "./utils/common"
 import { waitFor } from "./utils/waitFor"
 
 export class World extends Schema {
 	__holderMap = new Map<string, Schema>()
 	__isServer = false
 	__isClient = false
-	room?: Room
+	room?: RoomServer | RoomClient
 	clientState = {}
 
 	constructor({ mode, room }: WorldOptions) {
@@ -48,11 +48,11 @@ export class World extends Schema {
 		return this.__isServer
 	}
 
-	isServerOnly(): this is { room: Room } {
+	isServerOnly(): this is { room: RoomServer } {
 		return this.isServer && !this.isClient
 	}
 
-	isClientOnly(): this is { room: undefined } {
+	isClientOnly(): this is { room: RoomClient } {
 		return !this.isServer && this.isClient
 	}
 
@@ -89,15 +89,22 @@ export class World extends Schema {
 						timeoutMs: 5000,
 						immediate: true,
 					})
-					const holder = this.__holderMap.get(message.id)
-					const method = holder?.serverHandlers.get(message.method)
-					if (method) {
-						// console.log(`CLIENT: Invoking ${message.method} with args:`, message.args);
-						holder?.eventHandlers
-							.get(message.method)
-							?.forEach((handler) => handler.bind(holder)(...message.args))
-						method.bind(holder)(...message.args)
+					const holder = this.__holderMap.get(message.id)!
+					const handler =
+						holder.serverHandlers.get(message.method) ||
+						holder.clientHandlers.get(message.method) ||
+						(holder[message.method as keyof typeof holder] as Function)
+					if (!handler) {
+						throw new Error(`Handler not found for ${message.method}`)
 					}
+					if (!(handler instanceof Function)) {
+						throw new Error(`Handler "${message.method}" is not a function!`)
+					}
+					// console.log(`CLIENT: Invoking ${message.method} with args:`, message.args);
+					holder?.eventHandlers
+						.get(message.method)
+						?.forEach((handler) => handler.bind(holder)(...message.args))
+					handler.bind(holder)(...message.args)
 				} catch (error) {
 					console.error("RPC error:", error)
 				}
@@ -109,10 +116,14 @@ export class World extends Schema {
 export type WorldOptions =
 	| {
 			mode: "server"
-			room: Room
+			room: RoomServer
 	  }
 	| {
-			mode: "client" | "both"
+			mode: "client"
+			room: RoomClient
+	  }
+	| {
+			mode: "both"
 			room?: undefined
 	  }
 

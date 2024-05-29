@@ -44,12 +44,9 @@ export function Client<Target extends Schema, Descriptor extends Function>() {
 
 		// @ts-ignore
 		descriptor.value = function (this: Schema, ...args: any[]) {
-			if (!this.___.world.isClient) {
-				console.log(`Method ${propertyKey} can only be called on client!`)
-				return
+			if (this.___.world.isClient) {
+				originalMethod?.bind(this)(...args)
 			}
-
-			originalMethod?.bind(this)(...args)
 		}
 
 		return descriptor
