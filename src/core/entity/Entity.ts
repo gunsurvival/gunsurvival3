@@ -6,6 +6,8 @@ import { Container, Graphics, Sprite } from "pixi.js"
 export class Entity extends Schema {
 	display: Container = this.clientOnly(() => new Container())
 	@type(Vec2) pos = new Vec2()
+	@type(Vec2) vel = new Vec2()
+	@type(Vec2) acc = new Vec2()
 
 	async prepare() {}
 
@@ -18,5 +20,7 @@ export class Entity extends Schema {
 		this.pos.y = y
 	}
 
-	nextTick() {}
+	beforeTick(deltaTime: number) {}
+	finalizeTick(deltaTime: number) {}
+	nextTick(deltaTime: number) {}
 }

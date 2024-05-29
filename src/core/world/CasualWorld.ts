@@ -25,10 +25,9 @@ export class CasualWorld extends World {
 				height: window.innerHeight,
 				resizeTo: window,
 			})
-			this.app.ticker.add(() => {
-				this.entities.forEach((entity) => {
-					entity.nextTick()
-				})
+			const nextTick = this.nextTick.bind(this)
+			this.app.ticker.add((delta) => {
+				nextTick(delta.deltaTime)
 			})
 			const gameRoot = document.getElementById("game-root")
 			if (gameRoot) {
@@ -64,6 +63,37 @@ export class CasualWorld extends World {
 		if (this.isClient) {
 			this.app.stage.addChild(entity.display)
 		}
+	}
+
+	beforeTick(entity: Entity, deltaTime: number) {
+		if (entity.acc.x !== 0) {
+			// prevent unnecessary assign setter (for colyseus performance)
+			entity.acc.x = 0
+		}
+		if (entity.acc.y !== 0) {
+			// prevent unnecessary assign setter (for colyseus performance)
+			entity.acc.y = 0
+		}
+		entity.beforeTick(deltaTime)
+	}
+
+	finalizeTick(entity: Entity, deltaTime: number) {
+		entity.vel.x += entity.acc.x
+		entity.vel.y += entity.acc.y
+		entity.pos.x += entity.vel.x
+		entity.pos.y += entity.vel.y
+	}
+
+	nextTick(deltaTime: number) {
+		this.entities.forEach((entity) => {
+			this.beforeTick(entity, deltaTime)
+		})
+		this.entities.forEach((entity) => {
+			entity.nextTick(deltaTime)
+		})
+		this.entities.forEach((entity) => {
+			this.finalizeTick(entity, deltaTime)
+		})
 	}
 
 	registerEntityClass(entityClass: typeof Entity) {
