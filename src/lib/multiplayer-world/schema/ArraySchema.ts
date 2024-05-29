@@ -1,20 +1,20 @@
-import {ArraySchema as ColyArraySchema} from '@colyseus/schema';
+import { ArraySchema as ColyArraySchema } from "@colyseus/schema"
 
-import {addWorldRecursive} from '../utils';
-import type {World} from '../World';
-import {Schema} from './Schema';
+import { addWorldRecursive } from "../utils/common"
+import type { World } from "../World"
+import { Schema } from "./Schema"
 
 export class ArraySchema<T = any> extends ColyArraySchema<T> {
 	___: {
 		world: World
-	} = {} as any;
+	} = {} as any
 
 	push(...values: T[]): number {
-		values.forEach(value => {
+		values.forEach((value) => {
 			if (value instanceof Schema) {
-				addWorldRecursive(value, this.___.world);
+				addWorldRecursive(value, this.___.world)
 			}
-		});
-		return super.push(...values);
+		})
+		return super.push(...values)
 	}
 }

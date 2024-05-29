@@ -1,98 +1,123 @@
-import {Room} from '@colyseus/core';
-import {Room as RoomClient} from 'colyseus.js';
+import { Room } from "@colyseus/core"
+import { Room as RoomClient } from "colyseus.js"
 
-import {Schema} from './schema/Schema';
-import {
-	addWorldRecursive, pairClientServer, waitFor,
-} from './utils';
+import { Schema } from "./schema/Schema"
+import { addWorldRecursive, pairClientServer } from "./utils/common"
+import { waitFor } from "./utils/waitFor"
 
 export class World extends Schema {
-	__holderMap = new Map<string, Schema>();
-	isServer = false;
-	isClient = false;
-	room?: Room;
+	__holderMap = new Map<string, Schema>()
+	__isServer = false
+	__isClient = false
+	room?: Room
+	clientState = {}
 
-	isServerOnly(): this is {room: Room} {
-		return this.isServer && !this.isClient;
-	}
-
-	isClientOnly(): this is {room: undefined} {
-		return !this.isServer && this.isClient;
-	}
-
-	isBoth(): this is {room: undefined} {
-		return this.isServer && this.isClient;
-	}
-
-	constructor({mode, room}: WorldOptions) {
-		super();
-		if (mode === 'server') {
-			this.isServer = true;
-			this.isClient = false;
-			this.room = room;
+	constructor({ mode, room }: WorldOptions) {
+		super()
+		if (mode === "server") {
+			this.__isServer = true
+			this.__isClient = false
+			this.room = room
 			if (!room) {
-				throw new Error('Room is required for server mode!');
+				throw new Error("Room is required for server mode!")
 			}
-		} else if (mode === 'client') {
-			this.isServer = false;
-			this.isClient = true;
+		} else if (mode === "client") {
+			this.__isServer = false
+			this.__isClient = true
 			if (room) {
-				throw new Error('Do not pass "room" in client mode!');
+				throw new Error('Do not pass "room" in client mode!')
 			}
-		} else if (mode === 'both') {
-			this.isServer = true;
-			this.isClient = true;
+		} else if (mode === "both") {
+			this.__isServer = true
+			this.__isClient = true
 			if (room) {
-				throw new Error('Do not pass "room" in mode "both"!');
+				throw new Error('Do not pass "room" in mode "both"!')
 			}
 		} else {
-			throw new Error('Invalid mode!');
+			throw new Error("Invalid mode!")
 		}
 	}
 
-	initialize() {
-		addWorldRecursive(this, this);
+	async init(options: Record<string, any>) {}
+
+	get isClient() {
+		return this.__isClient
+	}
+
+	get isServer() {
+		return this.__isServer
+	}
+
+	isServerOnly(): this is { room: Room } {
+		return this.isServer && !this.isClient
+	}
+
+	isClientOnly(): this is { room: undefined } {
+		return !this.isServer && this.isClient
+	}
+
+	isBoth(): this is { room: undefined } {
+		return this.isServer && this.isClient
+	}
+
+	clientOnly<T extends any>(func: () => T): T {
+		if (this.isClient) {
+			return func()
+		} else {
+			return new Proxy(
+				{},
+				{
+					get: () => {
+						throw new Error("This property is client-only!")
+					},
+					set: () => {
+						throw new Error("This property is client-only!")
+					},
+				}
+			) as T
+		}
 	}
 
 	setupRPC(room: RoomClient) {
-		room.onStateChange.once(state => {
-			pairClientServer(this, room.state, this.__holderMap);
+		room.onStateChange.once((state) => {
+			pairClientServer(this, room.state, this.__holderMap)
 
-			const a = () => Boolean();
-			type q = ReturnType<typeof a>
-
-			room.onMessage<RPCRequest>('rpc', async message => {
+			room.onMessage<RPCRequest>("rpc", async (message) => {
 				try {
 					await waitFor(() => this.__holderMap.has(message.id), {
 						waitForWhat: `holderMap has ${message.id}`,
 						timeoutMs: 5000,
 						immediate: true,
-					});
-					const holder = this.__holderMap.get(message.id);
-					const method = holder?.serverHandlers.get(message.method);
+					})
+					const holder = this.__holderMap.get(message.id)
+					const method = holder?.serverHandlers.get(message.method)
 					if (method) {
 						// console.log(`CLIENT: Invoking ${message.method} with args:`, message.args);
-						holder?.eventHandlers.get(message.method)?.forEach(handler => handler.bind(holder)(...message.args));
-						method.bind(holder)(...message.args);
+						holder?.eventHandlers
+							.get(message.method)
+							?.forEach((handler) => handler.bind(holder)(...message.args))
+						method.bind(holder)(...message.args)
 					}
 				} catch (error) {
-					console.error('RPC error:', error);
+					console.error("RPC error:", error)
 				}
-			});
-		});
+			})
+		})
 	}
 }
 
-type WorldOptions = {
-	mode: 'server';
-	room: Room;
-} | {
-	mode: 'client' | 'both';
-	room?: undefined;
-}
+export type WorldOptions =
+	| {
+			mode: "server"
+			room: Room
+	  }
+	| {
+			mode: "client" | "both"
+			room?: undefined
+	  }
 
 export type RPCRequest = {
-	id: string;
-	method: string;
-	args: any[];
+	id: string
+	method: string
+	args: any[]
 }

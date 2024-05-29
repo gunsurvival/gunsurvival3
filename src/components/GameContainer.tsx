@@ -1,14 +1,22 @@
+import { createWorld } from "@/core/utils/createWorld"
 import { CasualWorld } from "@/core/world/CasualWorld"
+import { genericMemo } from "@/utils/genericMemo"
 import { useMemo } from "react"
 
-export function GameContainer() {
+export const GameContainer = genericMemo(() => {
+	console.log("GameContainer rendered")
 	const world = useMemo(() => {
-		const w = new CasualWorld({
+		createWorld(CasualWorld, {
 			mode: "both",
+		}).then((w) => {
+			w.spawnEntityClass("Gunner", {})
 		})
-		w.initialize()
-		return w
 	}, [])
 
-	return <div></div>
-}
+	return (
+		<div
+			id="game-root"
+			className="fixed top-0 left-0 w-full h-full bg-white"
+		></div>
+	)
+})

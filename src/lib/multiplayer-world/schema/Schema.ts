@@ -3,6 +3,7 @@ import uniqid from "uniqid"
 
 import { Init } from "../decorators"
 import { World } from "../World"
+import { waitFor } from "../utils/waitFor"
 
 @Init()
 export class Schema extends ColySchema {
@@ -125,6 +126,45 @@ export class Schema extends ColySchema {
 			`${this.___.world.isServerOnly() ? "SERVER" : "CLIENT"}:`,
 			...args
 		)
+	}
+
+	clientOnly<T extends any>(func?: () => T): T {
+		// TODO: refactor waitfor timeout (it's not good), subcribe to signal from internal variable (when World add this entity, or after addRecursiveWorld on this) and run func()
+		let result = null as T
+
+		waitFor(() => this.___.world.isClient, {
+			waitForWhat: "schema.clientOnly",
+			timeoutMs: 10000,
+			skipTestThrow: true,
+		})
+			.then(() => {
+				result = func?.() as T
+				console.log("resolved result", result)
+			})
+			.catch((e) => {
+				console.log(this.constructor.name, e)
+			})
+		const that = this
+
+		return new Proxy(
+			{},
+			{
+				get() {
+					if (result === undefined && that.___.world.isClient) {
+						throw new Error("This property is client-only!")
+					}
+					return result
+				},
+			}
+		) as T
+	}
+
+	get isClient() {
+		return this.___.world.__isClient
+	}
+
+	get isServer() {
+		return this.___.world.__isServer
 	}
 }
 

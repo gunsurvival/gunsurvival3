@@ -13,6 +13,7 @@
     "colyseus": "^0.15.17",
     "colyseus.js": "^0.15.20",
     "next": "14.2.3",
+    "pixi.js": "^8.1.5",
     "react": "^18",
     "react-dom": "^18",
     "uniqid": "^5.4.0"
