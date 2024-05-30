@@ -1,9 +1,11 @@
-import { Room as RoomServer } from "@colyseus/core"
+import { Room as RoomServer, type Client as ColyClient } from "@colyseus/core"
 import { Room as RoomClient } from "colyseus.js"
 
 import { Schema } from "./schema/Schema"
 import { pairClientServer } from "./utils/common"
 import { waitFor } from "./utils/waitFor"
+import { Controller } from "./Controller"
+import { Server } from "./decorators"
 
 export class World extends Schema {
 	__holderMap = new Map<string, Schema>()
@@ -78,11 +80,12 @@ export class World extends Schema {
 		}
 	}
 
-	setupRPC(room: RoomClient) {
-		room.onStateChange.once((state) => {
-			pairClientServer(this, room.state, this.__holderMap)
+	/** Run this setup on client */
+	setupServerRPC(roomClient: RoomClient) {
+		roomClient.onStateChange.once((state) => {
+			pairClientServer(this, roomClient.state, this.__holderMap)
 
-			room.onMessage<RPCRequest>("rpc", async (message) => {
+			roomClient.onMessage<RPCRequest>("rpc", async (message) => {
 				try {
 					await waitFor(() => this.__holderMap.has(message.id), {
 						waitForWhat: `holderMap has ${message.id}`,
@@ -109,6 +112,44 @@ export class World extends Schema {
 					console.error("RPC error:", error)
 				}
 			})
+		})
+	}
+
+	/** Run this setup on server */
+	setupClientRPC(roomServer: RoomServer) {
+		roomServer.onMessage<RPCRequest>("rpc", async (client, message) => {
+			try {
+				await waitFor(() => this.__holderMap.has(message.id), {
+					waitForWhat: `holderMap has ${message.id}`,
+					timeoutMs: 5000,
+					immediate: true,
+				})
+				const holder = this.__holderMap.get(message.id)!
+
+				// double check the enableBidirectional option
+				if (!holder.enableBidirectional) {
+					throw new Error(
+						"Are you trying to sync some methods on server to the client? If so, see document about enableBidirectional!"
+					)
+				}
+
+				const handler =
+					holder.serverHandlers.get(message.method) ||
+					holder.clientHandlers.get(message.method) ||
+					(holder[message.method as keyof typeof holder] as Function)
+				if (!handler) {
+					throw new Error(`Handler not found for ${message.method}`)
+				}
+				if (!(handler instanceof Function)) {
+					throw new Error(`Handler "${message.method}" is not a function!`)
+				}
+				holder?.eventHandlers
+					.get(message.method)
+					?.forEach((handler) => handler.bind(holder)(...message.args))
+				handler.bind(holder)(...message.args)
+			} catch (error) {
+				console.error("RPC error:", error)
+			}
 		})
 	}
 }

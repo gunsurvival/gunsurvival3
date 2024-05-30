@@ -33,11 +33,14 @@ export class Schema extends ColySchema {
 
 					const normalHandler = schema[key as keyof typeof schema] as Function
 
+					if (!normalHandler) {
+						throw new Error(
+							`Method "${key}" not found on Schema "${schema.constructor.name}"!`
+						)
+					}
+
 					return (...args: any[]) => {
-						normalHandler.bind(schema)(...args)
-
 						// sync to remote
-
 						if (schema.___.world.isServerOnly()) {
 							// sync to remote clients if it's server only
 							schema.___.world.room.broadcast("rpc", {
@@ -59,11 +62,9 @@ export class Schema extends ColySchema {
 								args,
 							})
 						}
-					}
 
-					throw new Error(
-						`Server method "${key}" not found on Schema "${schema.constructor.name}"! Make sure to use @Server() decorator on your method!`
-					)
+						return normalHandler.bind(schema)(...args)
+					}
 				},
 			}
 		) as Omit<T, keyof Schema>
@@ -160,7 +161,6 @@ export class Schema extends ColySchema {
 		})
 			.then(() => {
 				result = func?.() as T
-				console.log("resolved result", result)
 			})
 			.catch((e) => {
 				console.log(this.constructor.name, e)

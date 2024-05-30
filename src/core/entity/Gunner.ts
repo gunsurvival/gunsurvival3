@@ -17,8 +17,9 @@ export class Gunner extends Entity {
 	}
 
 	nextTick() {
-		this.display.x = 100
-		this.display.y = 100
-		this.display.rotation += 0.01
+		if (this.isClient) {
+			this.display.x = this.pos.x
+			this.display.y = this.pos.y
+		}
 	}
 }

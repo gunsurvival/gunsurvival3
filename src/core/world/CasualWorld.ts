@@ -1,3 +1,4 @@
+import uniqid from "uniqid"
 import { Application } from "pixi.js"
 import { World } from "@/lib/multiplayer-world/World"
 import * as Entities from "@/core/entity"
@@ -5,6 +6,7 @@ import { Entity } from "@/core/entity/Entity"
 import { Server } from "@/lib/multiplayer-world/decorators"
 import { type } from "@colyseus/schema"
 import { MapSchema } from "@/lib/multiplayer-world/schema"
+import { Controller } from "@/lib/multiplayer-world/Controller"
 
 export type EntityClassKey = keyof typeof Entities
 
@@ -40,14 +42,20 @@ export class CasualWorld extends World {
 	}
 
 	@Server()
-	async spawnEntityClass<ClassName extends EntityClassKey>(
+	async addEntity<ClassName extends EntityClassKey>(
 		className: ClassName,
 		options: Parameters<
 			(typeof Entities)[ClassName] extends typeof Entity
 				? InstanceType<(typeof Entities)[ClassName]>["init"]
-				: never
+				: (options: {}) => any
 		>[0]
 	) {
+		const id = uniqid()
+		return this.sync().addEntityById(id, className, options)
+	}
+
+	@Server()
+	async addEntityById(id: string, className: string, options: {}) {
 		const entityClass = this.entityRegistry.get(
 			className as keyof typeof Entities
 		)
@@ -55,7 +63,7 @@ export class CasualWorld extends World {
 			throw new Error(`Entity class "${className}" not found!`)
 		}
 		const entity = new entityClass()
-
+		entity.id = id
 		this.entities.set(entity.id, entity)
 		//! init must be apear after Map set or Array push
 		await entity.init(options)
@@ -63,6 +71,7 @@ export class CasualWorld extends World {
 		if (this.isClient) {
 			this.app.stage.addChild(entity.display)
 		}
+		return entity
 	}
 
 	beforeTick(entity: Entity, deltaTime: number) {
@@ -82,6 +91,9 @@ export class CasualWorld extends World {
 		entity.vel.y += entity.acc.y
 		entity.pos.x += entity.vel.x
 		entity.pos.y += entity.vel.y
+
+		entity.vel.x *= 0.9
+		entity.vel.y *= 0.9
 	}
 
 	nextTick(deltaTime: number) {
@@ -89,6 +101,9 @@ export class CasualWorld extends World {
 			this.beforeTick(entity, deltaTime)
 		})
 		this.entities.forEach((entity) => {
+			if (entity.controller) {
+				entity.controller.nextTick(deltaTime)
+			}
 			entity.nextTick(deltaTime)
 		})
 		this.entities.forEach((entity) => {

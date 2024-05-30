@@ -21,7 +21,7 @@ export function Server<Target extends Schema, Descriptor extends Function>() {
 		// @ts-ignore
 		descriptor.value = function (this: Schema, ...args: any[]) {
 			if (this.___.world.isServer) {
-				originalMethod?.bind(this)(...args)
+				return originalMethod?.bind(this)(...args)
 			}
 		}
 
@@ -45,7 +45,7 @@ export function Client<Target extends Schema, Descriptor extends Function>() {
 		// @ts-ignore
 		descriptor.value = function (this: Schema, ...args: any[]) {
 			if (this.___.world.isClient) {
-				originalMethod?.bind(this)(...args)
+				return originalMethod?.bind(this)(...args)
 			}
 		}
 
