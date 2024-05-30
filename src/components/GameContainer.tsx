@@ -8,8 +8,15 @@ export const GameContainer = genericMemo(() => {
 	const world = useMemo(() => {
 		createWorld(CasualWorld, {
 			mode: "both",
-		}).then((w) => {
-			w.spawnEntityClass("Gunner", {})
+		}).then(async (w) => {
+			if (w.isServer) {
+				const entity = await w.addEntity("Gunner", {
+					x: 100,
+					y: 100,
+				})
+				const controller = await entity.addController("GunnerController", {})
+				controller.setTarget(entity)
+			}
 		})
 	}, [])
 
