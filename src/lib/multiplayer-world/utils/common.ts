@@ -85,7 +85,11 @@ export function addWorldRecursive(schema: SchemaType, world: World) {
 
 	schemas.forEach((schema) => {
 		schema.___.world = world
+		if (schema instanceof Schema) {
+			world.__schemaMap.set(schema.id, schema)
+		}
 	})
+	return schemas
 }
 
 export function pairClientServer(
@@ -93,60 +97,61 @@ export function pairClientServer(
 	serverObject: any,
 	holderMap: Map<string, Schema>
 ) {
-	setTimeout(() => {
-		// wait to see if any max exceed error
-		if (clientObject instanceof MapSchema) {
-			;(serverObject as MapSchema).onAdd((item, key) => {
-				waitFor(() => clientObject.has(key), {
-					waitForWhat: `clientObject#${clientObject?.constructor?.name}.has(${key})`,
-					timeoutMs: 5000,
+	// setTimeout(() => {
+	// wait to see if any max exceed error
+	if (clientObject instanceof MapSchema) {
+		;(serverObject as MapSchema).onAdd((item, key) => {
+			waitFor(() => clientObject.has(key), {
+				waitForWhat: `clientObject#${clientObject?.constructor?.name}.has(${key})`,
+				timeoutMs: 5000,
+			})
+				.then(() => {
+					// TODO: should implement onAdd for clientObject for O(1)
+					pairClientServer(clientObject.get(key), item, holderMap)
 				})
-					.then(() => {
-						// TODO: should implement onAdd for clientObject for O(1)
-						pairClientServer(clientObject.get(key), item, holderMap)
-					})
-					.catch(console.error)
+				.catch(console.error)
+		})
+		clientObject.forEach((value, key) => {
+			pairClientServer(value, serverObject.get(key), holderMap)
+		})
+	} else if (clientObject instanceof ArraySchema) {
+		;(serverObject as ArraySchema).onAdd((item, index) => {
+			waitFor(() => clientObject[index], {
+				waitForWhat: `clientObject#${clientObject?.constructor?.name}[${index}]`,
+				timeoutMs: 5000,
 			})
-			clientObject.forEach((value, key) => {
-				pairClientServer(value, serverObject.get(key), holderMap)
-			})
-		} else if (clientObject instanceof ArraySchema) {
-			;(serverObject as ArraySchema).onAdd((item, index) => {
-				waitFor(() => clientObject[index], {
-					waitForWhat: `clientObject#${clientObject?.constructor?.name}[${index}]`,
-					timeoutMs: 5000,
+				.then(() => {
+					pairClientServer(clientObject[index], item, holderMap)
 				})
-					.then(() => {
-						pairClientServer(clientObject[index], item, holderMap)
-					})
-					.catch(console.error)
-			})
+				.catch(console.error)
+		})
 
-			clientObject.forEach((value, index) => {
-				pairClientServer(value, serverObject[index], holderMap)
+		clientObject.forEach((value, index) => {
+			pairClientServer(value, serverObject[index], holderMap)
+		})
+	} else if (clientObject instanceof Schema) {
+		Object.keys(clientObject)
+			.filter((k) => !reservedKeys.includes(k))
+			.forEach((key) => {
+				// @ts-ignore
+				pairClientServer(clientObject[key], serverObject[key], holderMap)
 			})
-		} else if (clientObject instanceof Schema) {
-			Object.keys(clientObject)
-				.filter((k) => !reservedKeys.includes(k))
-				.forEach((key) => {
-					// @ts-ignore
-					pairClientServer(clientObject[key], serverObject[key], holderMap)
-				})
-		} else if (typeof clientObject === "object") {
-			Object.keys(clientObject)
-				.filter((k) => !reservedKeys.includes(k))
-				.forEach((key) => {
-					pairClientServer(clientObject[key], serverObject[key], holderMap)
-				})
-		}
+	} else if (typeof clientObject === "object") {
+		Object.keys(clientObject)
+			.filter((k) => !reservedKeys.includes(k) && isSchemaType(clientObject[k]))
+			.forEach((key) => {
+				pairClientServer(clientObject[key], serverObject[key], holderMap)
+			})
+	}
 
-		if (clientObject?.id && serverObject?.id) {
-			holderMap.set(serverObject.id, clientObject)
-			;(serverObject as Schema).listen("id", (value) => {
-				clientObject.id = value
-			})
-		}
-	})
+	if (clientObject?.id && serverObject?.id) {
+		holderMap.set(serverObject.id, clientObject)
+		;(serverObject as Schema).listen("id", (value) => {
+			clientObject.id = value
+		})
+		clientObject.serverState = serverObject
+	}
+	// })
 }
 
 export type SchemaType = Schema | MapSchema | ArraySchema

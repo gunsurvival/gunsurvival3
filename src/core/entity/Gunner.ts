@@ -5,6 +5,9 @@ export class Gunner extends Entity {
 	display = this.clientOnly<Sprite>()
 
 	async init(options: { x: number; y: number }) {
+		this.pos.x = options.x
+		this.pos.y = options.y
+
 		if (this.isClient) {
 			this.display = new Sprite(await Assets.load("images/terrorist.png"))
 			this.display.width = 80
@@ -18,6 +21,9 @@ export class Gunner extends Entity {
 
 	nextTick() {
 		if (this.isClient) {
+			this.pos.x = this.serverState?.pos.x
+			this.pos.y = this.serverState?.pos.y
+
 			this.display.x = this.pos.x
 			this.display.y = this.pos.y
 		}

@@ -1,29 +1,29 @@
 import { Schema as ColySchema, type } from "@colyseus/schema"
 import uniqid from "uniqid"
 
-import { Init } from "../decorators"
 import { World } from "../World"
 import { waitFor } from "../utils/waitFor"
+import { Client } from "colyseus"
 
-@Init()
 export class Schema extends ColySchema {
 	___: {
+		//! Put world in ___ to avoid colyseus sync this
 		world: World
 	} = {} as any
 
-	enableBidirectional = false
 	serverHandlers!: Map<string, Function>
 	clientHandlers!: Map<string, Function>
 	eventHandlers = new Map<string, Function[]>()
+	serverState!: typeof this
 
 	@type("string") id: string = uniqid()
 
-	sync<T extends Schema, Field extends FieldKeys<T>>(this: T) {
+	// use this to sync the method to specific client (server purpose only but mode "both" still work)
+	sync<T extends Schema>(this: T, client: Client) {
 		const schema = this
 		return new Proxy(
 			{},
 			{
-				// TODO: implement setter, if invoking set, then make the rpc changes sync to client
 				get(target, key: string) {
 					if (!schema[key as keyof typeof schema]) {
 						throw new Error(
@@ -31,39 +31,56 @@ export class Schema extends ColySchema {
 						)
 					}
 
-					const normalHandler = schema[key as keyof typeof schema] as Function
+					const serverHandler = schema.serverHandlers.get(key)
 
-					if (!normalHandler) {
+					if (!serverHandler) {
 						throw new Error(
-							`Method "${key}" not found on Schema "${schema.constructor.name}"!`
+							`Server method "${key}" not found on Schema "${schema.constructor.name}"! Make sure to add @Server() decorator on the method!`
 						)
 					}
 
 					return (...args: any[]) => {
-						// sync to remote
 						if (schema.___.world.isServerOnly()) {
-							// sync to remote clients if it's server only
-							schema.___.world.room.broadcast("rpc", {
-								id: schema.id,
-								method: key,
-								args,
-							})
-						} else if (schema.___.world.isClientOnly()) {
-							if (!schema.enableBidirectional) {
-								throw new Error(
-									"Are you trying to sync some methods on client to the server? If so, see document about enableBidirectional!"
-								)
-							}
-
-							// sync to remote server if it's client only
-							schema.___.world.room.send("rpc", {
+							client.send("rpc", {
 								id: schema.id,
 								method: key,
 								args,
 							})
 						}
 
-						return normalHandler.bind(schema)(...args)
+						return serverHandler.bind(schema)(...args)
+					}
+				},
+				// TODO: implement setter, if invoking set, then make the rpc changes sync to client
+			}
+		) as Omit<T, keyof Schema>
+	}
+
+	skipCheck<T extends Schema>(this: T) {
+		const schema = this
+		return new Proxy(
+			{},
+			{
+				get(target, key: string) {
+					if (!schema[key as keyof typeof schema]) {
+						throw new Error(
+							`Method "${key}" not found on Schema "${schema.constructor.name}"!`
+						)
+					}
+
+					const handler =
+						schema.serverHandlers.get(key) ||
+						schema.clientHandlers.get(key) ||
+						(schema[key as keyof typeof schema] as Function | undefined)
+
+					if (!handler || !(handler instanceof Function)) {
+						throw new Error(
+							`Method "${key}" not found on Schema "${schema.constructor.name} or not a function!`
+						)
+					}
+
+					return (...args: any[]) => {
+						return handler.bind(schema)(...args)
 					}
 				},
 			}
@@ -152,26 +169,31 @@ export class Schema extends ColySchema {
 
 	clientOnly<T extends any>(func?: () => T): T {
 		// TODO: refactor waitfor timeout (it's not good), subcribe to signal from internal variable (when World add this entity, or after addRecursiveWorld on this) and run func()
-		let result = null as T
+		const checkSymbol = Symbol("check")
+		let result = checkSymbol as T
 
-		waitFor(() => this.___.world.isClient, {
-			waitForWhat: "schema.clientOnly",
-			timeoutMs: 10000,
-			skipTestThrow: true,
+		waitFor(
+			() => {
+				if (this.___.world.__isClient === true) {
+					result = func?.() as T
+				}
+				return true
+			},
+			{
+				waitForWhat: "schema.___.world.isClient is defined",
+				timeoutMs: 10000,
+				skipTestThrow: true,
+			}
+		).catch((e) => {
+			console.log(this.constructor.name, e)
 		})
-			.then(() => {
-				result = func?.() as T
-			})
-			.catch((e) => {
-				console.log(this.constructor.name, e)
-			})
 		const that = this
 
 		return new Proxy(
 			{},
 			{
 				get() {
-					if (result === undefined && that.___.world.isClient) {
+					if (result === checkSymbol && that.___.world.isServerOnly()) {
 						throw new Error("This property is client-only!")
 					}
 					return result
@@ -180,12 +202,22 @@ export class Schema extends ColySchema {
 		) as T
 	}
 
+	getSnapshot(): Record<string, any> {
+		return {}
+	}
+
+	applySnapshot(snapshot: ReturnType<this["getSnapshot"]>) {}
+
 	get isClient() {
 		return this.___.world.__isClient
 	}
 
 	get isServer() {
 		return this.___.world.__isServer
+	}
+
+	get world() {
+		return this.___.world
 	}
 }
 

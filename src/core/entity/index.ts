@@ -3,3 +3,4 @@
 export { Bush } from "./Bush"
 export { Rock } from "./Rock"
 export { Gunner } from "./Gunner"
+export { Bullet } from "./Bullet"

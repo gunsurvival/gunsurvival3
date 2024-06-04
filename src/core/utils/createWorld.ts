@@ -11,5 +11,10 @@ export async function createWorld<
 	const world = new worldClass(options)
 	addWorldRecursive(world, world)
 	await world.init(options)
+	if (options.mode === "server") {
+		world.setupClientRPC(options.room)
+	} else if (options.mode === "client") {
+		world.setupServerRPC(options.room)
+	}
 	return world as InstanceType<WorldClass>
 }

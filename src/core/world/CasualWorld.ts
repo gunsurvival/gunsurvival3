@@ -6,7 +6,6 @@ import { Entity } from "@/core/entity/Entity"
 import { Server } from "@/lib/multiplayer-world/decorators"
 import { type } from "@colyseus/schema"
 import { MapSchema } from "@/lib/multiplayer-world/schema"
-import { Controller } from "@/lib/multiplayer-world/Controller"
 
 export type EntityClassKey = keyof typeof Entities
 
@@ -21,15 +20,12 @@ export class CasualWorld extends World {
 	app = this.clientOnly(() => new Application())
 
 	async init(options: {}) {
+		const nextTick = this.nextTick.bind(this)
 		if (this.isClient) {
 			await this.app.init({
 				width: window.innerWidth,
 				height: window.innerHeight,
 				resizeTo: window,
-			})
-			const nextTick = this.nextTick.bind(this)
-			this.app.ticker.add((delta) => {
-				nextTick(delta.deltaTime)
 			})
 			const gameRoot = document.getElementById("game-root")
 			if (gameRoot) {
@@ -39,9 +35,14 @@ export class CasualWorld extends World {
 				throw new Error("node game-root not found!")
 			}
 		}
+		setInterval(() => {
+			nextTick(1000 / 60)
+		}, 1000 / 128)
 	}
 
-	@Server()
+	@Server({ skipSync: true })
+	// Why skipSync: we are just create id on server side to make sure both client and server have the same id (passing to addEntityById)
+	// So we don't need to sync this line to client as the addEntityById will be skipped on client side (because it's server only)
 	async addEntity<ClassName extends EntityClassKey>(
 		className: ClassName,
 		options: Parameters<
@@ -51,7 +52,7 @@ export class CasualWorld extends World {
 		>[0]
 	) {
 		const id = uniqid()
-		return this.sync().addEntityById(id, className, options)
+		return this.addEntityById(id, className, options)
 	}
 
 	@Server()
@@ -66,12 +67,32 @@ export class CasualWorld extends World {
 		entity.id = id
 		this.entities.set(entity.id, entity)
 		//! init must be apear after Map set or Array push
+		entity._options = options
 		await entity.init(options)
 
 		if (this.isClient) {
 			this.app.stage.addChild(entity.display)
 		}
 		return entity
+	}
+
+	@Server({ skipSync: true })
+	removeEntity(entity: Entity | Entity[]) {
+		const entities = Array.isArray(entity) ? entity : [entity]
+		entities.forEach((entity) => {
+			this.removeEntityById(entity.id)
+		})
+	}
+
+	@Server()
+	removeEntityById(id: string | string[]) {
+		const ids = Array.isArray(id) ? id : [id]
+		ids.forEach((id) => {
+			const entity = this.entities.get(id)
+			if (entity) {
+				entity.markAsRemoved = true
+			}
+		})
 	}
 
 	beforeTick(entity: Entity, deltaTime: number) {
@@ -109,9 +130,41 @@ export class CasualWorld extends World {
 		this.entities.forEach((entity) => {
 			this.finalizeTick(entity, deltaTime)
 		})
+		this.entities.forEach((entity) => {
+			if (entity.markAsRemoved) {
+				this.entities.delete(entity.id)
+				if (this.isClient) {
+					this.app.stage.removeChild(entity.display)
+				}
+				// entity.onRemoved()
+			}
+		})
 	}
 
 	registerEntityClass(entityClass: typeof Entity) {
 		this.entityRegistry.set(entityClass.name as EntityClassKey, entityClass)
+	}
+
+	getSnapshot() {
+		return {
+			entities: Array.from(this.entities.values()).map((entity) => [
+				entity.constructor.name,
+				entity.id,
+				entity.getSnapshot(),
+			]) as [string, string, ReturnType<Entity["getSnapshot"]>][],
+		}
+	}
+
+	applySnapshot(snapshot: ReturnType<this["getSnapshot"]>) {
+		this.entities.clear()
+		snapshot.entities.forEach(async ([className, id, entitySnapshot]) => {
+			const entity = await this.skipCheck().addEntityById(
+				id,
+				className,
+				entitySnapshot._options
+			)
+
+			entity.applySnapshot(entitySnapshot)
+		})
 	}
 }
