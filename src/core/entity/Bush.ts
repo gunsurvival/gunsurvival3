@@ -2,10 +2,11 @@ import { Assets, Sprite } from "pixi.js"
 import { Entity } from "./Entity"
 import { Circle } from "detect-collisions"
 import { type } from "@colyseus/schema"
-import { SerializedResponse } from "../world/CasualWorld"
+import type { SerializedResponse } from "../world/CasualWorld"
 import { Gunner } from "./Gunner"
 import { getZIndexByName } from "../settings"
 import { Server } from "@/lib/multiplayer-world/decorators"
+import { lerpAngle } from "../utils/common"
 
 enum LOUDNESS {
 	QUIET,
@@ -16,8 +17,9 @@ enum LOUDNESS {
 export class Bush extends Entity {
 	body = new Circle({ x: 0, y: 0 }, 100)
 	display = this.clientOnly<Sprite>()
-	@type("number") loudness = LOUDNESS.QUIET
-	_loudness: LOUDNESS = LOUDNESS.QUIET
+	__loudness: LOUDNESS = LOUDNESS.QUIET
+
+	@type("number") loudness: number = LOUDNESS.QUIET
 
 	async init(options: { x: number; y: number }) {
 		this.pos.x = options.x
@@ -36,37 +38,65 @@ export class Bush extends Entity {
 	}
 
 	nextTick() {
-		if (this.serverState) {
+		if (this.isClient && this.serverState) {
 			this.loudness = this.serverState.loudness
 		}
 
 		if (this.isClient) {
-			if (this.loudness === LOUDNESS.LOUD) {
-				this.display.alpha = 0.5
-			} else {
-				this.display.alpha = 1
-			}
+			// shaking the tree
+			let targetRotation =
+				Math.sin(this.world.frameCount / 10) * (0.1 * this.loudness)
+			this.display.rotation = lerpAngle(
+				this.display.rotation,
+				targetRotation,
+				0.1
+			)
 		}
+
+		this.__loudness = LOUDNESS.QUIET
 	}
 
 	finalizeTick(deltaTime: number): void {
-		this.setLoudness(LOUDNESS.LOUD)
+		this.setLoudness(this.__loudness)
 	}
 
+	@Server()
+	onCollisionEnter(otherId: string, response: SerializedResponse): void {
+		// @ts-ignore
+		const other = this.world.entities.get(otherId)
+
+		if (other instanceof Gunner && this.isClient && other.isControlling) {
+			this.display.alpha = 0.5
+		}
+	}
+
+	@Server({ skipSync: true })
 	onCollisionStay(otherId: string, response: SerializedResponse): void {
 		// @ts-ignore
 		const other = this.world.entities.get(otherId)
 		if (other instanceof Gunner) {
 			if (other.vel.len() > 2) {
-				this._loudness = LOUDNESS.LOUD
+				this.__loudness = Math.max(this.__loudness, LOUDNESS.LOUD)
 			} else if (other.vel.len() > 0.5) {
-				this._loudness = LOUDNESS.NOISE
+				this.__loudness = Math.max(this.__loudness, LOUDNESS.NOISE)
 			}
+		}
+	}
+
+	@Server()
+	onCollisionExit(otherId: string, response: SerializedResponse): void {
+		// @ts-ignore
+		const other = this.world.entities.get(otherId)
+		if (other instanceof Gunner && this.isClient && other.isControlling) {
+			this.display.alpha = 1
 		}
 	}
 
 	@Server({ skipSync: true })
 	setLoudness(loudness: LOUDNESS) {
-		if (this.loudness !== loudness) this.loudness = loudness
+		// console.log("loudless", this._loudness)
+		if (this.loudness !== loudness) {
+			this.loudness = loudness
+		}
 	}
 }
