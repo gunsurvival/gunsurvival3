@@ -160,14 +160,21 @@ export class CasualWorld extends World {
 
 	finalizeTick(entity: Entity, deltaTime: number) {
 		entity.finalizeTick(deltaTime)
-		entity.vel.x += entity.acc.x
-		entity.vel.y += entity.acc.y
-		entity.pos.x += entity.vel.x
-		entity.pos.y += entity.vel.y
+		if (entity.acc.len() > 0.01) {
+			entity.vel.x += entity.acc.x
+			entity.vel.y += entity.acc.y
+		}
+
+		if (entity.vel.len() > 0.01) {
+			entity.pos.x += entity.vel.x
+			entity.pos.y += entity.vel.y
+		}
 		entity.body?.setPosition(entity.pos.x, entity.pos.y)
 
-		entity.vel.x *= 0.91
-		entity.vel.y *= 0.91
+		if (entity.vel.len() > 0.01) {
+			entity.vel.x *= 0.91
+			entity.vel.y *= 0.91
+		}
 		if (entity.acc.x !== 0) {
 			// prevent unnecessary assign setter (for colyseus performance)
 			entity.acc.x = 0
