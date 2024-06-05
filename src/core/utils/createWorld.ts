@@ -16,5 +16,6 @@ export async function createWorld<
 	} else if (options.mode === "client") {
 		world.setupServerRPC(options.room)
 	}
+	globalThis.world = world
 	return world as InstanceType<WorldClass>
 }

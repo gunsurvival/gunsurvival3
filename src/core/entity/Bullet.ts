@@ -61,4 +61,7 @@ export class Bullet extends Entity {
 			// this.markAsRemoved
 		}
 	}
+
+	@Server({ allowClient: true })
+	onCollisionStay(otherId: string, response: SerializedResponse): void {}
 }
