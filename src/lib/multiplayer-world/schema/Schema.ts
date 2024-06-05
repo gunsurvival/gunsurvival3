@@ -4,6 +4,7 @@ import uniqid from "uniqid"
 import { World } from "../World"
 import { waitFor } from "../utils/waitFor"
 import { Client } from "colyseus"
+import { getHandlers, serverHandlersMap } from "../decorators"
 
 export class Schema extends ColySchema {
 	___: {
@@ -11,12 +12,18 @@ export class Schema extends ColySchema {
 		world: World
 	} = {} as any
 
-	serverHandlers!: Map<string, Function>
-	clientHandlers!: Map<string, Function>
 	eventHandlers = new Map<string, Function[]>()
 	serverState!: typeof this
 
 	@type("string") id: string = uniqid()
+
+	get serverHandlers() {
+		return getHandlers(this.constructor, "server")
+	}
+
+	get clientHandlers() {
+		return getHandlers(this.constructor, "client")
+	}
 
 	// use this to sync the method to specific client (server purpose only but mode "both" still work)
 	sync<T extends Schema>(this: T, client: Client) {
@@ -34,6 +41,7 @@ export class Schema extends ColySchema {
 					const serverHandler = schema.serverHandlers.get(key)
 
 					if (!serverHandler) {
+						console.log(serverHandlersMap)
 						throw new Error(
 							`Server method "${key}" not found on Schema "${schema.constructor.name}"! Make sure to add @Server() decorator on the method!`
 						)

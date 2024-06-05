@@ -22,6 +22,10 @@ export abstract class Entity extends Schema {
 
 	markAsRemoved = false
 
+	get isControlling() {
+		return Boolean(this.controller)
+	}
+
 	async prepare() {}
 
 	async init(options: {}) {}
@@ -81,8 +85,6 @@ export abstract class Entity extends Schema {
 		this.acc.y = snapshot.acc.y
 	}
 
-	applied = 0
-
 	@Server()
 	applyForceByAngle(angle: number, force: number) {
 		this.acc.x += Math.cos(angle) * force
@@ -106,7 +108,6 @@ export abstract class Entity extends Schema {
 
 	@Server({ allowClient: true })
 	destroy() {
-		// throw new Error()
-		// this.markAsRemoved = true
+		this.markAsRemoved = true
 	}
 }

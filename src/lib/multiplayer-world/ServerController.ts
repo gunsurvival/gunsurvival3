@@ -1,9 +1,10 @@
-import { UserData } from "@/server/types/UserData"
 import { Schema } from "./schema"
-import { Client as ClientOnServer } from "@colyseus/core"
+import { getHandlers } from "./decorators"
 
 export class ServerController<T extends Schema = Schema> {
-	controllerHandlers!: Map<string, Function>
+	get controllerHandlers() {
+		return getHandlers(this.constructor, "controller")
+	}
 
 	constructor(
 		public id: string,
