@@ -19,6 +19,11 @@
 		"emitDecoratorMetadata": true,
 		"useDefineForClassFields": false
 	},
-	"include": ["next-env.d.ts", "**/*.ts", "**/*.tsx"],
+	"include": [
+		"next-env.d.ts",
+		"./src/types/global.d.ts",
+		"**/*.ts",
+		"**/*.tsx"
+	],
 	"exclude": ["node_modules"]
 }

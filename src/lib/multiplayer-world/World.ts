@@ -1,3 +1,4 @@
+import { System, type Body, type Response } from "detect-collisions"
 import { Room as RoomServer, type Client as ColyClient } from "@colyseus/core"
 import { Room as RoomClient } from "colyseus.js"
 
@@ -8,12 +9,17 @@ import { Server } from "./decorators"
 import { ServerController } from "./ServerController"
 
 export class World extends Schema {
+	frameCount = 0
 	__holderMap = new Map<string, Schema>()
 	__schemaMap = new Map<string, Schema>()
 	__isServer = false
 	__isClient = false
 	room?: RoomServer | RoomClient
 	clientState = {}
+
+	physics = new System()
+	collisionHashMap = new Map<string, Response>()
+	newCollisionHashMap = new Map<string, Response>()
 
 	constructor({ mode, room }: WorldOptions) {
 		super()
@@ -89,7 +95,10 @@ export class World extends Schema {
 			"snapshot",
 			(snapshot: ReturnType<this["getSnapshot"]>) => {
 				this.applySnapshot(snapshot)
-				pairClientServer(this, roomClient.state, this.__holderMap)
+				setTimeout(() => {
+					// TODO: remove timeout deo hieu sao cho nay bi cannot read pos
+					pairClientServer(this, roomClient.state, this.__holderMap)
+				}, 1000)
 				roomClient.onMessage<RPCRequest>("rpc", async (message) => {
 					console.log("rpc message", message)
 					try {
@@ -98,6 +107,7 @@ export class World extends Schema {
 							waitForWhat: `holderMap has ${message.id}`,
 							timeoutMs: 5000,
 							immediate: true,
+							intervalMs: 10,
 						})
 
 						const clientSchema = this.__holderMap.get(message.id)!

@@ -1,3 +1,4 @@
+import { Circle } from "detect-collisions"
 import { ArraySchema, MapSchema, Schema } from "../schema"
 import { World } from "../World"
 import { waitFor } from "./waitFor"
@@ -97,61 +98,66 @@ export function pairClientServer(
 	serverObject: any,
 	holderMap: Map<string, Schema>
 ) {
-	// setTimeout(() => {
-	// wait to see if any max exceed error
-	if (clientObject instanceof MapSchema) {
-		;(serverObject as MapSchema).onAdd((item, key) => {
-			waitFor(() => clientObject.has(key), {
-				waitForWhat: `clientObject#${clientObject?.constructor?.name}.has(${key})`,
-				timeoutMs: 5000,
-			})
-				.then(() => {
-					// TODO: should implement onAdd for clientObject for O(1)
-					pairClientServer(clientObject.get(key), item, holderMap)
+	setTimeout(() => {
+		// wait to see if any max exceed error
+		if (clientObject instanceof MapSchema) {
+			;(serverObject as MapSchema).onAdd((item, key) => {
+				waitFor(() => clientObject.has(key), {
+					waitForWhat: `clientObject#${clientObject?.constructor?.name}.has(${key})`,
+					timeoutMs: 5000,
 				})
-				.catch(console.error)
-		})
-		clientObject.forEach((value, key) => {
-			pairClientServer(value, serverObject.get(key), holderMap)
-		})
-	} else if (clientObject instanceof ArraySchema) {
-		;(serverObject as ArraySchema).onAdd((item, index) => {
-			waitFor(() => clientObject[index], {
-				waitForWhat: `clientObject#${clientObject?.constructor?.name}[${index}]`,
-				timeoutMs: 5000,
+					.then(() => {
+						// TODO: should implement onAdd for clientObject for O(1)
+						pairClientServer(clientObject.get(key), item, holderMap)
+					})
+					.catch(console.error)
 			})
-				.then(() => {
-					pairClientServer(clientObject[index], item, holderMap)
+			clientObject.forEach((value, key) => {
+				pairClientServer(value, serverObject.get(key), holderMap)
+			})
+		} else if (clientObject instanceof ArraySchema) {
+			;(serverObject as ArraySchema).onAdd((item, index) => {
+				waitFor(() => clientObject[index], {
+					waitForWhat: `clientObject#${clientObject?.constructor?.name}[${index}]`,
+					timeoutMs: 5000,
 				})
-				.catch(console.error)
-		})
-
-		clientObject.forEach((value, index) => {
-			pairClientServer(value, serverObject[index], holderMap)
-		})
-	} else if (clientObject instanceof Schema) {
-		Object.keys(clientObject)
-			.filter((k) => !reservedKeys.includes(k))
-			.forEach((key) => {
-				// @ts-ignore
-				pairClientServer(clientObject[key], serverObject[key], holderMap)
+					.then(() => {
+						pairClientServer(clientObject[index], item, holderMap)
+					})
+					.catch(console.error)
 			})
-	} else if (typeof clientObject === "object") {
-		Object.keys(clientObject)
-			.filter((k) => !reservedKeys.includes(k) && isSchemaType(clientObject[k]))
-			.forEach((key) => {
-				pairClientServer(clientObject[key], serverObject[key], holderMap)
-			})
-	}
 
-	if (clientObject?.id && serverObject?.id) {
-		holderMap.set(serverObject.id, clientObject)
-		;(serverObject as Schema).listen("id", (value) => {
-			clientObject.id = value
-		})
-		clientObject.serverState = serverObject
-	}
-	// })
+			clientObject.forEach((value, index) => {
+				pairClientServer(value, serverObject[index], holderMap)
+			})
+		} else if (clientObject instanceof Schema) {
+			Object.keys(clientObject)
+				.filter((k) => !reservedKeys.includes(k))
+				.forEach((key) => {
+					// @ts-ignore
+					pairClientServer(clientObject[key], serverObject[key], holderMap)
+				})
+		} else if (typeof clientObject === "object") {
+			Object.keys(clientObject)
+				.filter(
+					(k) =>
+						!reservedKeys.includes(k) &&
+						isSchemaType(clientObject[k]) &&
+						isSchemaType(serverObject?.[k])
+				)
+				.forEach((key) => {
+					pairClientServer(clientObject[key], serverObject[key], holderMap)
+				})
+		}
+
+		if (clientObject?.id && serverObject?.id) {
+			holderMap.set(serverObject.id, clientObject)
+			;(serverObject as Schema).listen("id", (value) => {
+				clientObject.id = value
+			})
+			clientObject.serverState = serverObject
+		}
+	})
 }
 
 export type SchemaType = Schema | MapSchema | ArraySchema

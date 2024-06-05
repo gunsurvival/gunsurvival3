@@ -2,7 +2,7 @@ import { Entity } from "@/core/entity/Entity"
 import { ServerController } from "./ServerController"
 import { Schema } from "./schema"
 
-export function Server({ skipSync = false } = {}) {
+export function Server({ skipSync = false, allowClient = false } = {}) {
 	// This decorator will make the method only run if the world is server side and send signal to call the method remotely on client side
 	// It's mean any method that has this decorator will treat as "dispatch" method to client
 	// Example creating a bullet, the bullet will be created on server (random data will be calculated on server)
@@ -20,27 +20,30 @@ export function Server({ skipSync = false } = {}) {
 		target.serverHandlers.set(propertyKey, originalMethod)
 
 		descriptor.value = function (this: Schema, ...args: any[]) {
-			if (this.world.isServerOnly() && !skipSync) {
-				// If current world is in server side, send rpc method to client
-				// if (isPrivate) {
-				// 	//TODO: make this If the method is private, only send to the entity's client (who control the entity)
-				// 	if (this instanceof Entity && this.controller?.clientOnServer) {
-				// 		this.world.room.send(this.controller.clientOnServer, "rpc", {
-				// 			id: this.id,
-				// 			method: propertyKey,
-				// 			args,
-				// 		})
-				// 	}
-				// } else {
-				this.world.room.broadcast("rpc", {
-					id: this.id,
-					method: propertyKey,
-					args,
-				})
-				// }
+			if (this instanceof Schema) {
+				if (this.world.isServerOnly() && !skipSync) {
+					// If current world is in server side, send rpc method to client
+					// if (isPrivate) {
+					// 	//TODO: make this If the method is private, only send to the entity's client (who control the entity)
+					// 	if (this instanceof Entity && this.controller?.clientOnServer) {
+					// 		this.world.room.send(this.controller.clientOnServer, "rpc", {
+					// 			id: this.id,
+					// 			method: propertyKey,
+					// 			args,
+					// 		})
+					// 	}
+					// } else {
+					this.world.room.broadcast("rpc", {
+						id: this.id,
+						method: propertyKey,
+						args,
+					})
+					// }
+				}
 			}
 
-			if (this.isServer) {
+			if (this.isServer || allowClient) {
+				// console.log(propertyKey, args, this)
 				return originalMethod.bind(this)(...args)
 			}
 		}
@@ -86,7 +89,7 @@ export function Client() {
 	}
 }
 
-export function Controller() {
+export function Controller({ serverOnly = false } = {}) {
 	return function (
 		target: any,
 		propertyKey: any,
@@ -107,7 +110,8 @@ export function Controller() {
 				})
 			}
 
-			return originalMethod.bind(this)(...args)
+			if (!serverOnly || !this.isClient)
+				return originalMethod.bind(this)(...args)
 		}
 	}
 }

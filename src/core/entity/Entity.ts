@@ -5,8 +5,11 @@ import { Server } from "@/lib/multiplayer-world/decorators"
 import { Container } from "pixi.js"
 import * as Controllers from "@/core/controller"
 import { ServerController } from "@/lib/multiplayer-world/ServerController"
+import { Body, Response } from "detect-collisions"
+import type { SerializedResponse } from "../world/CasualWorld"
 
-export class Entity extends Schema {
+export abstract class Entity extends Schema {
+	body: Body | undefined
 	display: Container = this.clientOnly(() => new Container())
 	@type(Vec2) pos = new Vec2()
 	@type(Vec2) vel = new Vec2()
@@ -76,5 +79,34 @@ export class Entity extends Schema {
 		this.vel.y = snapshot.vel.y
 		this.acc.x = snapshot.acc.x
 		this.acc.y = snapshot.acc.y
+	}
+
+	applied = 0
+
+	@Server()
+	applyForceByAngle(angle: number, force: number) {
+		this.acc.x += Math.cos(angle) * force
+		this.acc.y += Math.sin(angle) * force
+	}
+
+	@Server()
+	applyForceByVelocity(velocity: Vec2, force: number) {
+		this.acc.x += velocity.x * force
+		this.acc.y += velocity.y * force
+	}
+
+	@Server()
+	onCollisionEnter(otherId: string, response: SerializedResponse) {}
+
+	// @Server()
+	onCollisionStay(otherId: string, response: SerializedResponse) {}
+
+	@Server()
+	onCollisionExit(otherId: string, response: SerializedResponse) {}
+
+	@Server({ allowClient: true })
+	destroy() {
+		// throw new Error()
+		// this.markAsRemoved = true
 	}
 }

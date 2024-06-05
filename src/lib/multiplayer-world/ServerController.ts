@@ -7,12 +7,19 @@ export class ServerController<T extends Schema = Schema> {
 
 	constructor(
 		public id: string,
-		public target: T
-	) // public clientOnServer?: ClientOnServer<UserData>
-	{}
+		public target: T // public clientOnServer?: ClientOnServer<UserData>
+	) {}
 
 	get world() {
 		return this.target.world
+	}
+
+	get isClient() {
+		return this.world.isClient
+	}
+
+	get isServer() {
+		return this.world.isServer
 	}
 
 	async init(options: {}) {}
