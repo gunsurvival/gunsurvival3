@@ -7,7 +7,6 @@ import { ServerController } from "@/lib/multiplayer-world/ServerController"
 import { Body } from "detect-collisions"
 import { World } from "../world/World"
 import type { SerializedResponse } from "../utils/dectect-collisions"
-import EventEmitter from "events"
 import { lerp, lerpAngle } from "@/core/utils/common"
 
 export abstract class Entity<
@@ -78,7 +77,7 @@ export abstract class Entity<
 		this.pos.y = lerp(this.pos.y, serverState.pos.y, 0.1)
 		this.vel.x = lerp(this.vel.x, serverState.vel.x, 0.3)
 		this.vel.y = lerp(this.vel.y, serverState.vel.y, 0.3)
-		this.rotation = lerpAngle(this.rotation, serverState.rotation, 0.2)
+		this.rotation = lerpAngle(this.rotation, serverState.rotation, 0.1)
 	}
 
 	beforeTick(deltaTime: number) {}
@@ -130,7 +129,7 @@ export abstract class Entity<
 	@Server()
 	onCollisionExit(otherId: string, response: SerializedResponse) {}
 
-	@Server({ allowClient: true })
+	@Server()
 	destroy() {
 		this.markAsRemoved = true
 	}

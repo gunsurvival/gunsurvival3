@@ -3,8 +3,9 @@ import { genericMemo } from "@/utils/genericMemo"
 import { useCallback, useEffect, useState } from "react"
 import { Client as ColyseusClient } from "colyseus.js"
 import { Checkbox } from "./ui/checkbox"
-import { PixiWorld, World } from "@/lib/multiplayer-world/world"
 import * as Entities from "@/core/entity"
+import { CasualWorld } from "@/core/world/CasualWorld"
+import { World } from "@/lib/multiplayer-world/world"
 
 async function connect() {
 	const client = new ColyseusClient("ws://khoakomlem-internal.ddns.net:2567")
@@ -15,7 +16,7 @@ async function connect() {
 
 async function createClientWorld() {
 	const { room } = await connect()
-	const world = createWorld(PixiWorld, {
+	const world = createWorld(CasualWorld, {
 		mode: "client",
 		room,
 		entityClasses: Entities,

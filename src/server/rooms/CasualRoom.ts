@@ -3,14 +3,14 @@ import * as Entities from "@/core/entity"
 import { createWorld } from "@/core/utils/createWorld"
 import { Room, Client, type ClientArray } from "@colyseus/core"
 import { UserData } from "../types/UserData"
-import { PixiWorld } from "@/lib/multiplayer-world/world"
+import { CasualWorld } from "@/core/world/CasualWorld"
 
-export class CasualRoom extends Room<PixiWorld> {
+export class CasualRoom extends Room<CasualWorld> {
 	declare clients: ClientArray<UserData>
 	maxClients = 4
 
 	async onCreate(options: any) {
-		const world = createWorld(PixiWorld, {
+		const world = createWorld(CasualWorld, {
 			mode: "server",
 			room: this,
 			entityClasses: Entities,
@@ -22,11 +22,15 @@ export class CasualRoom extends Room<PixiWorld> {
 		// 		y: Math.random() * 500,
 		// 	})
 		// }
-		for (let i = 0; i < 10; i++) {
-			world.addEntity("Bush", {
+
+		const wideX = 1920
+		const wideY = 1080
+		const objects = ["Bush", "Rock"]
+		for (let i = 0; i < 30; i++) {
+			world.addEntity(objects[Math.floor(Math.random() * objects.length)], {
 				pos: {
-					x: Math.random() * 500,
-					y: Math.random() * 500,
+					x: -wideX / 2 + Math.random() * wideX,
+					y: -wideY / 2 + Math.random() * wideY,
 				},
 			})
 		}
