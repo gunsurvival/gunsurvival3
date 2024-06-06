@@ -24,13 +24,13 @@ export abstract class PixiEntity extends Entity<PixiWorld> {
 
 	onAddToWorld(): void {
 		if (this.isClient) {
-			if (this.display) this.world.app.stage.addChild(this.display)
+			if (this.display) this.world.viewport.addChild(this.display)
 		}
 	}
 
 	onRemoveFromWorld(): void {
 		if (this.display) {
-			this.world.app.stage.removeChild(this.display)
+			this.world.viewport.removeChild(this.display)
 			this.display.destroy()
 		}
 	}

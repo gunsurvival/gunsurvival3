@@ -1,9 +1,13 @@
 import { Application } from "pixi.js"
 import { CasualWorld } from "./CasualWorld"
 import { Delayed } from "colyseus"
+import { Viewport } from "pixi-viewport"
+import { Camera } from "../utils/Camera"
 
 export class PixiWorld extends CasualWorld {
 	app = this.clientOnly(() => new Application())
+	viewport!: Viewport
+	camera!: Camera
 
 	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
 		await this.app.init({
@@ -11,6 +15,14 @@ export class PixiWorld extends CasualWorld {
 			height: window.innerHeight,
 			resizeTo: window,
 		})
+		this.viewport = new Viewport({
+			events: this.app.renderer.events,
+			passiveWheel: false,
+			stopPropagation: true,
+		})
+		this.camera = new Camera(this.viewport)
+		this.app.stage.addChild(this.viewport)
+
 		const gameRoot = document.getElementById("game-root")
 		if (gameRoot) {
 			gameRoot.innerHTML = ""
@@ -40,7 +52,8 @@ export class PixiWorld extends CasualWorld {
 			while (internal.accumulator >= internal.targetDelta) {
 				internal.elapseTick++
 				internal.accumulator -= internal.targetDelta
-				nextTick(1000 / 60)
+				this.camera.nextTick(this.app.ticker.deltaTime)
+				nextTick(this.app.ticker.deltaTime)
 			}
 		}
 
