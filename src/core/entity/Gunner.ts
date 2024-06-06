@@ -1,32 +1,21 @@
 import { Assets, Sprite } from "pixi.js"
-import { Entity } from "./Entity"
-import { lerp, lerpAngle } from "../utils/common"
-import { Body, Circle } from "detect-collisions"
-import type { SerializedResponse } from "../world/CasualWorld"
-import { Server } from "@/lib/multiplayer-world/decorators"
-import { getZIndexByName } from "../settings"
+import { Circle } from "detect-collisions"
+import type { SerializedResponse } from "@/lib/multiplayer-world/utils/dectect-collisions"
+import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 
-export class Gunner extends Entity {
+export class Gunner extends PixiEntity {
+	declare display: Sprite
 	body = new Circle({ x: 0, y: 0 }, 40)
-	display = this.clientOnly<Sprite>()
 
-	async init(options: { x: number; y: number }) {
-		this.pos.x = options.x
-		this.pos.y = options.y
-
-		if (this.isClient) {
-			this.display = new Sprite(await Assets.load("images/terrorist.png"))
-			this.display.width = 80
-			this.display.height = 80
-			this.display.anchor.x = 0.5
-			this.display.anchor.y = 0.5
-			this.display.x = options.x
-			this.display.y = options.y
-			this.display.zIndex = getZIndexByName(this.constructor.name)
-		}
+	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
+		this.display = new Sprite(await Assets.load("images/terrorist.png"))
+		this.display.width = 80
+		this.display.height = 80
+		this.display.anchor.x = 0.5
+		this.display.anchor.y = 0.5
 	}
 
-	nextTick() {
+	nextTick(delta: number) {
 		if (this.pos.x < 0) {
 			this.pos.x = 0
 		}
@@ -39,29 +28,9 @@ export class Gunner extends Entity {
 		if (this.pos.y > 1080) {
 			this.pos.y = 1080
 		}
-		if (this.isClient) {
-			if (this.serverState) {
-				// kéo khúc này ra function khác, chỉ đc gọi reconcile state khi có defined
-				if (window.isSync) {
-					this.pos.x = lerp(this.pos.x, this.serverState.pos.x, 0.1)
-					this.pos.y = lerp(this.pos.y, this.serverState.pos.y, 0.1)
-					this.vel.x = lerp(this.vel.x, this.serverState.vel.x, 0.3)
-					this.vel.y = lerp(this.vel.y, this.serverState.vel.y, 0.3)
-				}
-			}
-
-			this.display.x = this.pos.x
-			this.display.y = this.pos.y
-			this.display.rotation = lerpAngle(
-				this.display.rotation,
-				Math.atan2(this.vel.y, this.vel.x),
-				0.2
-			)
-		}
+		this.rotation = Math.atan2(this.vel.y, this.vel.x)
+		this.updateDisplay(delta)
 	}
-
-	@Server({ allowClient: true })
-	onCollisionEnter(otherId: string, response: SerializedResponse): void {}
 
 	onCollisionStay(otherId: string, response: SerializedResponse): void {
 		// @ts-ignore
@@ -71,7 +40,4 @@ export class Gunner extends Entity {
 			this.pos.y -= response.overlapV.y / 2
 		}
 	}
-
-	@Server({ allowClient: true })
-	onCollisionExit(otherId: string, response: SerializedResponse): void {}
 }

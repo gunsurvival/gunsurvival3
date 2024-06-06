@@ -2,23 +2,26 @@ import uniqid from "uniqid"
 import { Schema, type } from "@/lib/multiplayer-world/schema"
 import { Vec2 } from "../schema/Vec2"
 import { Server } from "@/lib/multiplayer-world/decorators"
-import { Container } from "pixi.js"
 import * as Controllers from "@/core/controller"
 import { ServerController } from "@/lib/multiplayer-world/ServerController"
-import { Body, Response } from "detect-collisions"
-import type { SerializedResponse } from "../world/CasualWorld"
+import { Body } from "detect-collisions"
+import { World } from "../world/World"
+import type { SerializedResponse } from "../utils/dectect-collisions"
+import EventEmitter from "events"
+import { lerp, lerpAngle } from "@/core/utils/common"
 
-export abstract class Entity extends Schema {
+export abstract class Entity<
+	TWorld extends World = World
+> extends Schema<TWorld> {
 	body: Body | undefined
-	display: Container = this.clientOnly(() => new Container())
 	@type(Vec2) pos = new Vec2()
 	@type(Vec2) vel = new Vec2()
 	@type(Vec2) acc = new Vec2()
+	@type("float32") rotation = 0
 	controller: ServerController | undefined
 	controllerRegistry = new Map<string, typeof ServerController>(
 		Object.entries(Controllers) as any
 	)
-	_options = {}
 
 	markAsRemoved = false
 
@@ -26,17 +29,55 @@ export abstract class Entity extends Schema {
 		return Boolean(this.controller)
 	}
 
-	async prepare() {}
+	abstract prepare(options: Parameters<this["init"]>[0]): Promise<void>
 
-	async init(options: {}) {}
+	init(
+		options: Partial<{
+			pos: { x: number; y: number }
+			vel: { x: number; y: number }
+			acc: { x: number; y: number }
+			rotation: number
+		}>
+	): void {
+		if (options.pos) {
+			this.pos.x = options.pos.x
+			this.pos.y = options.pos.y
+			if (this.body) this.body.setPosition(this.pos.x, this.pos.y)
+		}
+		if (options.vel) {
+			this.vel.x = options.vel.x
+			this.vel.y = options.vel.y
+		}
+		if (options.acc) {
+			this.acc.x = options.acc.x
+			this.acc.y = options.acc.y
+		}
+		if (options.rotation) {
+			this.rotation = options.rotation
+		}
+	}
 
-	initServer(serverState: typeof this) {}
+	initClient(options: {}) {}
 
-	@Server()
-	moveTo(x: number, y: number) {
-		this.log("Moving entity to", x, y)
-		this.pos.x = x
-		this.pos.y = y
+	getSnapshot(): Parameters<this["init"]>[0] {
+		return {
+			pos: { x: this.pos.x, y: this.pos.y },
+			vel: { x: this.vel.x, y: this.vel.y },
+			acc: { x: this.acc.x, y: this.acc.y },
+		}
+	}
+
+	onAddToWorld() {}
+	onRemoveFromWorld() {}
+
+	// TODO: change "typeof this" to be filtered schema only
+	onAttachServerState(serverState: typeof this) {}
+	reconcileServerState(serverState: typeof this) {
+		this.pos.x = lerp(this.pos.x, serverState.pos.x, 0.1)
+		this.pos.y = lerp(this.pos.y, serverState.pos.y, 0.1)
+		this.vel.x = lerp(this.vel.x, serverState.vel.x, 0.3)
+		this.vel.y = lerp(this.vel.y, serverState.vel.y, 0.3)
+		this.rotation = lerpAngle(this.rotation, serverState.rotation, 0.2)
 	}
 
 	beforeTick(deltaTime: number) {}
@@ -56,7 +97,7 @@ export abstract class Entity extends Schema {
 		if (!controllerClass) {
 			throw new Error(`Controller class "${className}" not found!`)
 		}
-		const controller = new controllerClass(id, this)
+		const controller = new controllerClass(id, this) as ServerController<Entity>
 		controller.init(options)
 		if (this.isClient) {
 			controller.setupClient()
@@ -65,24 +106,6 @@ export abstract class Entity extends Schema {
 		this.controller = controller
 		console.log("Controller added: ", controller.id)
 		return controller
-	}
-
-	getSnapshot() {
-		return {
-			pos: { x: this.pos.x, y: this.pos.y },
-			vel: { x: this.vel.x, y: this.vel.y },
-			acc: { x: this.acc.x, y: this.acc.y },
-			_options: this._options,
-		}
-	}
-
-	applySnapshot(snapshot: ReturnType<this["getSnapshot"]>): void {
-		this.pos.x = snapshot.pos.x
-		this.pos.y = snapshot.pos.y
-		this.vel.x = snapshot.vel.x
-		this.vel.y = snapshot.vel.y
-		this.acc.x = snapshot.acc.x
-		this.acc.y = snapshot.acc.y
 	}
 
 	@Server()
@@ -100,7 +123,7 @@ export abstract class Entity extends Schema {
 	@Server()
 	onCollisionEnter(otherId: string, response: SerializedResponse) {}
 
-	// @Server()
+	// Dont use server decorator here (lack of datapack)
 	onCollisionStay(otherId: string, response: SerializedResponse) {}
 
 	@Server()

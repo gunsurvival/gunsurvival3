@@ -1,55 +1,29 @@
 import { Assets, Sprite } from "pixi.js"
-import { Entity } from "./Entity"
 import { lerp } from "../utils/common"
 import { Gunner } from "./Gunner"
 import { Circle } from "detect-collisions"
 import { Server } from "@/lib/multiplayer-world/decorators"
-import type { SerializedResponse } from "../world/CasualWorld"
+import type { SerializedResponse } from "../../lib/multiplayer-world/utils/dectect-collisions"
+import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 
-export class Bullet extends Entity {
+export class Bullet extends PixiEntity {
+	declare display: Sprite
 	body = new Circle({ x: 0, y: 0 }, 4)
-	display = this.clientOnly<Sprite>()
 
-	async init(options: {
-		x: number
-		y: number
-		velX: number
-		velY: number
-		angle: number
-	}) {
-		this.pos.x = options.x
-		this.pos.y = options.y
-		this.vel.x = options.velX
-		this.vel.y = options.velY
-		// this.applyForceByAngle(options.angle, 20)
-
-		if (this.isClient) {
-			this.display = new Sprite(await Assets.load("images/Bullet2.png"))
-			this.display.width = 8
-			this.display.height = 8
-			this.display.anchor.x = 0.5
-			this.display.anchor.y = 0.5
-			this.display.x = options.x
-			this.display.y = options.y
-			this.display.rotation = options.angle
-		}
+	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
+		this.display = new Sprite(await Assets.load("images/Bullet2.png"))
+		await super.prepare(options)
+		this.display.anchor.x = 0.5
+		this.display.anchor.y = 0.5
+		this.display.width = 8
+		this.display.height = 8
 	}
 
-	nextTick() {
-		if (this.isClient) {
-			if (this.serverState) {
-				// kéo khúc này ra function khác, chỉ đc gọi reconcile state khi có defined
-				if (window.isSync) {
-					this.pos.x = lerp(this.pos.x, this.serverState.pos.x, 0.3)
-					this.pos.y = lerp(this.pos.y, this.serverState.pos.y, 0.3)
-					this.vel.x = lerp(this.vel.x, this.serverState.vel.x, 0.3)
-					this.vel.y = lerp(this.vel.y, this.serverState.vel.y, 0.3)
-				}
-			}
-
-			this.display.x = this.pos.x
-			this.display.y = this.pos.y
+	nextTick(delta: number) {
+		if (this.vel.len() < 0.1) {
+			this.destroy()
 		}
+		this.updateDisplay(delta)
 	}
 
 	@Server({ allowClient: true })
@@ -58,10 +32,7 @@ export class Bullet extends Entity {
 		const other = this.world.entities.get(otherId)
 		if (other instanceof Gunner) {
 			other.applyForceByVelocity(this.vel, 0.1)
-			// this.markAsRemoved
+			this.destroy()
 		}
 	}
-
-	@Server({ allowClient: true })
-	onCollisionStay(otherId: string, response: SerializedResponse): void {}
 }

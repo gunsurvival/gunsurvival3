@@ -1,21 +1,22 @@
 import { Schema as ColySchema, type } from "@colyseus/schema"
 import uniqid from "uniqid"
 
-import { World } from "../World"
-import { waitFor } from "../utils/waitFor"
 import { Client } from "colyseus"
 import { getHandlers, serverHandlersMap } from "../decorators"
+import type { World } from "../world/World"
+import EventEmitter from "events"
 
-export class Schema extends ColySchema {
+export class Schema<TWorld extends World = World> extends ColySchema {
 	___: {
 		//! Put world in ___ to avoid colyseus sync this
-		world: World
+		world: TWorld
 	} = {} as any
 
-	eventHandlers = new Map<string, Function[]>()
-	serverState!: typeof this
-
 	@type("string") id: string = uniqid()
+
+	eventHandlers = new Map<string, Function[]>()
+	serverState: typeof this | undefined
+	ee = new EventEmitter()
 
 	get serverHandlers() {
 		return getHandlers(this.constructor, "server")
@@ -176,24 +177,11 @@ export class Schema extends ColySchema {
 	}
 
 	clientOnly<T extends any>(func?: () => T): T {
-		// TODO: refactor waitfor timeout (it's not good), subcribe to signal from internal variable (when World add this entity, or after addRecursiveWorld on this) and run func()
 		const checkSymbol = Symbol("check")
 		let result = checkSymbol as T
 
-		waitFor(
-			() => {
-				if (this.___.world.__isClient === true) {
-					result = func?.() as T
-				}
-				return true
-			},
-			{
-				waitForWhat: "schema.___.world.isClient is defined",
-				timeoutMs: 10000,
-				skipTestThrow: true,
-			}
-		).catch((e) => {
-			console.log(this.constructor.name, e)
+		this.ee.once("prepare-done", () => {
+			result = func?.() as T
 		})
 		const that = this
 
@@ -213,8 +201,6 @@ export class Schema extends ColySchema {
 	getSnapshot(): Record<string, any> {
 		return {}
 	}
-
-	applySnapshot(snapshot: ReturnType<this["getSnapshot"]>) {}
 
 	get isClient() {
 		return this.___.world.__isClient

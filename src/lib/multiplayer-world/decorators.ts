@@ -1,4 +1,3 @@
-import { Entity } from "@/core/entity/Entity"
 import { ServerController } from "./ServerController"
 import { Schema } from "./schema"
 
@@ -155,14 +154,14 @@ function checkFunction(func: any): asserts func is Function {
 	}
 }
 
-function getHandlersMapByMode<
+function getHandlersMapByType<
 	Temp extends boolean,
 	Return extends Temp extends true
 		? Map<any, Record<string, Function>>
 		: Map<any, Map<string, Function>>
->(mode: "server" | "client" | "controller", isTemp: Temp): Return {
+>(type: "server" | "client" | "controller", isTemp: Temp): Return {
 	return (() => {
-		switch (mode) {
+		switch (type) {
 			case "server":
 				return isTemp ? _serverHandlersMap : serverHandlersMap
 			case "client":
@@ -175,15 +174,15 @@ function getHandlersMapByMode<
 
 function getRecordHandlers(
 	constructor: any,
-	mode: "server" | "client" | "controller"
+	type: "server" | "client" | "controller"
 ): Record<string, Function> {
-	const _handlersMap = getHandlersMapByMode(mode, true)
-	const handlersMap = getHandlersMapByMode(mode, false)
-	if (!_handlersMap.has(constructor)) {
+	const _handlersMap = getHandlersMapByType(type, true)
+	const handlersMap = getHandlersMapByType(type, false)
+	if (!constructor) {
 		return {}
 	}
 	const result = {
-		...getRecordHandlers(Object.getPrototypeOf(constructor), mode),
+		...getRecordHandlers(Object.getPrototypeOf(constructor), type),
 		..._handlersMap.get(constructor)!,
 	}
 	handlersMap.set(constructor, createMapFromRecord(result))
@@ -192,13 +191,13 @@ function getRecordHandlers(
 
 export function getHandlers(
 	constructor: any,
-	mode: "server" | "client" | "controller"
+	type: "server" | "client" | "controller"
 ): Map<string, Function> {
-	const handlersMap = getHandlersMapByMode(mode, false)
+	const handlersMap = getHandlersMapByType(type, false)
 	if (handlersMap.has(constructor)) {
 		return handlersMap.get(constructor)!
 	}
-	const record = getRecordHandlers(constructor, mode)
+	const record = getRecordHandlers(constructor, type)
 	const map = createMapFromRecord(record)
 	handlersMap.set(constructor, map)
 	return map

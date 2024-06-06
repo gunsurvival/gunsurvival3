@@ -1,14 +1,14 @@
 import { Schema } from "./schema"
 import { getHandlers } from "./decorators"
 
-export class ServerController<T extends Schema = Schema> {
+export class ServerController<Target extends Schema = Schema> {
 	get controllerHandlers() {
 		return getHandlers(this.constructor, "controller")
 	}
 
 	constructor(
 		public id: string,
-		public target: T // public clientOnServer?: ClientOnServer<UserData>
+		public target: Target // public clientOnServer?: ClientOnServer<UserData>
 	) {}
 
 	get world() {
@@ -27,7 +27,7 @@ export class ServerController<T extends Schema = Schema> {
 
 	setupClient() {}
 
-	setTarget(target: T) {
+	setTarget(target: Target) {
 		this.target = target
 	}
 

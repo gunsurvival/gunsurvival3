@@ -1,6 +1,5 @@
-import { Circle } from "detect-collisions"
 import { ArraySchema, MapSchema, Schema } from "../schema"
-import { World } from "../World"
+import type { World } from "../world/World"
 import { waitFor } from "./waitFor"
 
 export const reservedKeys = ["id", "world", "___"]
@@ -134,8 +133,10 @@ export function pairClientServer(
 			Object.keys(clientObject)
 				.filter((k) => !reservedKeys.includes(k))
 				.forEach((key) => {
-					// @ts-ignore
-					pairClientServer(clientObject[key], serverObject[key], holderMap)
+					if (serverObject?.[key]) {
+						// @ts-ignore
+						pairClientServer(clientObject[key], serverObject[key], holderMap)
+					}
 				})
 		} else if (typeof clientObject === "object") {
 			Object.keys(clientObject)

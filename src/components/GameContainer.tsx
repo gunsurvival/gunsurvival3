@@ -1,9 +1,10 @@
 import { createWorld } from "@/core/utils/createWorld"
-import { CasualWorld } from "@/core/world/CasualWorld"
 import { genericMemo } from "@/utils/genericMemo"
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Client as ColyseusClient } from "colyseus.js"
 import { Checkbox } from "./ui/checkbox"
+import { PixiWorld, World } from "@/lib/multiplayer-world/world"
+import * as Entities from "@/core/entity"
 
 async function connect() {
 	const client = new ColyseusClient("ws://khoakomlem-internal.ddns.net:2567")
@@ -14,9 +15,10 @@ async function connect() {
 
 async function createClientWorld() {
 	const { room } = await connect()
-	const world = await createWorld(CasualWorld, {
+	const world = createWorld(PixiWorld, {
 		mode: "client",
 		room,
+		entityClasses: Entities,
 	})
 	return world
 }
@@ -24,19 +26,7 @@ async function createClientWorld() {
 export const GameContainer = genericMemo(() => {
 	console.log("GameContainer rendered")
 
-	const [world, setWorld] = useState<CasualWorld | undefined>()
-
-	const test = useCallback(async () => {
-		// if (w.isServer) {
-		//   const entity = await w.addEntity("Gunner", {
-		//     x: 100,
-		//     y: 100,
-		//   })
-		//   const controller = await entity.addController("GunnerController", {})
-		//   controller.setTarget(entity)
-		// }
-	}, [])
-
+	const [world, setWorld] = useState<World | undefined>()
 	const onCheckedChange = useCallback((checked: boolean) => {
 		window.isSync = checked
 	}, [])

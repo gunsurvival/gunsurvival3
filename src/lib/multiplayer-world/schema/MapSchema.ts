@@ -1,7 +1,7 @@
 import { MapSchema as ColyMapSchema } from "@colyseus/schema"
 
 import { addWorldRecursive, isSchemaType } from "../utils/common"
-import type { World } from "../World"
+import type { World } from "../world/World"
 
 export class MapSchema<T = any> extends ColyMapSchema<T> {
 	___: {

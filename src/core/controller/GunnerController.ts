@@ -1,6 +1,6 @@
 import { ServerController } from "@/lib/multiplayer-world/ServerController"
 import { Gunner } from "../entity"
-import { Client, Controller, Server } from "@/lib/multiplayer-world/decorators"
+import { Controller, Server } from "@/lib/multiplayer-world/decorators"
 import EventEmitter from "events"
 
 export class GunnerController extends ServerController<Gunner> {
@@ -96,11 +96,15 @@ export class GunnerController extends ServerController<Gunner> {
 		const angle = Math.atan2(this.target.vel.y, this.target.vel.x)
 		// @ts-ignore
 		this.world.addEntity("Bullet", {
-			x: this.target.pos.x + Math.cos(angle) * 70,
-			y: this.target.pos.y + Math.sin(angle) * 70,
-			velX: Math.cos(angle) * 40,
-			velY: Math.sin(angle) * 40,
-			angle: Math.atan2(this.target.vel.y, this.target.vel.x),
+			pos: {
+				x: this.target.pos.x + Math.cos(angle) * 70,
+				y: this.target.pos.y + Math.sin(angle) * 70,
+			},
+			vel: {
+				x: Math.cos(angle) * 40,
+				y: Math.sin(angle) * 40,
+			},
+			rotation: Math.atan2(this.target.vel.y, this.target.vel.x),
 		})
 	}
 

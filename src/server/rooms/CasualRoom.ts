@@ -1,21 +1,19 @@
 import uniqid from "uniqid"
 import * as Entities from "@/core/entity"
 import { createWorld } from "@/core/utils/createWorld"
-import { CasualWorld } from "@/core/world/CasualWorld"
 import { Room, Client, type ClientArray } from "@colyseus/core"
 import { UserData } from "../types/UserData"
+import { PixiWorld } from "@/lib/multiplayer-world/world"
 
-export class CasualRoom extends Room<CasualWorld> {
+export class CasualRoom extends Room<PixiWorld> {
 	declare clients: ClientArray<UserData>
 	maxClients = 4
 
 	async onCreate(options: any) {
-		const world = await createWorld(CasualWorld, {
+		const world = createWorld(PixiWorld, {
 			mode: "server",
 			room: this,
-		})
-		Object.entries(Entities).forEach(([name, Entity]) => {
-			world.registerEntityClass(Entity)
+			entityClasses: Entities,
 		})
 		this.setState(world)
 		// for (let i = 0; i < 10; i++) {
@@ -26,8 +24,10 @@ export class CasualRoom extends Room<CasualWorld> {
 		// }
 		for (let i = 0; i < 10; i++) {
 			world.addEntity("Bush", {
-				x: Math.random() * 500,
-				y: Math.random() * 500,
+				pos: {
+					x: Math.random() * 500,
+					y: Math.random() * 500,
+				},
 			})
 		}
 
@@ -36,9 +36,12 @@ export class CasualRoom extends Room<CasualWorld> {
 		})
 
 		this.onMessage("ready-to-join", async (client, message) => {
+			console.log("ready to join")
 			const entity = await this.state.addEntity("Gunner", {
-				x: 100,
-				y: 100,
+				pos: {
+					x: 100,
+					y: 100,
+				},
 			})
 
 			//! Nếu xài addController thì khúc "addControllerById" trong hàm đó nó sẽ broadcast rpc tới tất cả client
