@@ -4,7 +4,7 @@ import uniqid from "uniqid"
 import { Client } from "colyseus"
 import { getHandlers, serverHandlersMap } from "../decorators"
 import type { World } from "../world/World"
-import EventEmitter from "events"
+import { AsyncEE } from "@/lib/AsyncEE"
 
 export class Schema<TWorld extends World = World> extends ColySchema {
 	___: {
@@ -16,7 +16,9 @@ export class Schema<TWorld extends World = World> extends ColySchema {
 
 	eventHandlers = new Map<string, Function[]>()
 	serverState: typeof this | undefined
-	ee = new EventEmitter()
+	ee = new AsyncEE<{
+		"*": () => void
+	}>()
 
 	get serverHandlers() {
 		return getHandlers(this.constructor, "server")
@@ -174,28 +176,6 @@ export class Schema<TWorld extends World = World> extends ColySchema {
 			`${this.___.world.isServerOnly() ? "SERVER" : "CLIENT"}:`,
 			...args
 		)
-	}
-
-	clientOnly<T extends any>(func?: () => T): T {
-		const checkSymbol = Symbol("check")
-		let result = checkSymbol as T
-
-		this.ee.once("prepare-done", () => {
-			result = func?.() as T
-		})
-		const that = this
-
-		return new Proxy(
-			{},
-			{
-				get() {
-					if (result === checkSymbol && that.___.world.isServerOnly()) {
-						throw new Error("This property is client-only!")
-					}
-					return result
-				},
-			}
-		) as T
 	}
 
 	getSnapshot(): Record<string, any> {
