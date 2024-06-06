@@ -2,6 +2,7 @@ import { Assets, Sprite } from "pixi.js"
 import { Circle } from "detect-collisions"
 import type { SerializedResponse } from "@/lib/multiplayer-world/utils/dectect-collisions"
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
+import { lerpAngle } from "../utils/common"
 
 export class Gunner extends PixiEntity {
 	declare display: Sprite
@@ -16,19 +17,11 @@ export class Gunner extends PixiEntity {
 	}
 
 	nextTick(delta: number) {
-		if (this.pos.x < 0) {
-			this.pos.x = 0
-		}
-		if (this.pos.y < 0) {
-			this.pos.y = 0
-		}
-		if (this.pos.x > 1920) {
-			this.pos.x = 1920
-		}
-		if (this.pos.y > 1080) {
-			this.pos.y = 1080
-		}
-		this.rotation = Math.atan2(this.vel.y, this.vel.x)
+		this.rotation = lerpAngle(
+			this.rotation,
+			Math.atan2(this.vel.y, this.vel.x),
+			0.3
+		)
 		this.updateDisplay(delta)
 	}
 
