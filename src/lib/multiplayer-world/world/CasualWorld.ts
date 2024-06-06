@@ -50,7 +50,7 @@ export abstract class CasualWorld extends World {
 			if (this.isClientOnly() && entity.serverState && window.isSync) {
 				entity.reconcileServerState(entity.serverState)
 			}
-			entity.nextTick(delta)
+			if (entity.readyToRender) entity.nextTick(delta)
 		})
 
 		// ---- DETECT COLLISIONS ----
