@@ -19,6 +19,7 @@ export class Bush extends PixiEntity {
 	@type("number") loudness: number = LOUDNESS.QUIET
 
 	body = new Circle({ x: 0, y: 0 }, 100)
+	frameStartShake = 0
 	__loudness: LOUDNESS = LOUDNESS.QUIET
 
 	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
@@ -34,7 +35,8 @@ export class Bush extends PixiEntity {
 		if (this.isClient) {
 			// shaking the tree
 			let targetRotation =
-				Math.sin(this.world.frameCount / 10) * (0.1 * this.loudness)
+				Math.sin((this.world.frameCount - this.frameStartShake) / 10) *
+				(0.1 * this.loudness)
 			this.rotation = lerpAngle(this.rotation, targetRotation, 0.1)
 		}
 
@@ -48,6 +50,12 @@ export class Bush extends PixiEntity {
 
 	reconcileServerState(serverState: this): void {
 		// super.reconcileServerState(serverState)
+		if (
+			this.loudness !== serverState.loudness &&
+			serverState.loudness >= LOUDNESS.NOISE
+		) {
+			this.frameStartShake = this.world.frameCount
+		}
 		this.loudness = serverState.loudness
 	}
 
