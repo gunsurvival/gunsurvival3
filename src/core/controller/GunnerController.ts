@@ -1,7 +1,8 @@
 import { ServerController } from "@/lib/multiplayer-world/ServerController"
 import { Gunner } from "../entity"
 import { Controller, Server } from "@/lib/multiplayer-world/decorators"
-import EventEmitter from "events"
+import { AsyncEE } from "@/lib/AsyncEE"
+import type { PixiWorld } from "@/lib/multiplayer-world/world"
 
 export class GunnerController extends ServerController<Gunner> {
 	speed = 0.5
@@ -12,10 +13,16 @@ export class GunnerController extends ServerController<Gunner> {
 		right: false,
 		shoot: false,
 	}
-	ee = new EventEmitter()
+	ee = new AsyncEE<{
+		keypress: (key: keyof GunnerController["state"]) => void
+		"*": () => void
+	}>()
 
 	setupClient() {
 		console.log("Setting up client")
+		if ((this.world as PixiWorld)?.camera) {
+			;(this.world as PixiWorld).camera.follow(this.target.pos)
+		}
 		const handleKeydown = (e: KeyboardEvent) => {
 			if (e.key === "w") {
 				this.enable("up")
@@ -53,7 +60,7 @@ export class GunnerController extends ServerController<Gunner> {
 		const handleClick = (e: MouseEvent) => {
 			this.enable("shoot")
 		}
-		this.ee.addListener("keypress", (key: keyof typeof this.state) => {
+		this.ee.addListener("keypress", (key) => {
 			if (key === "shoot") {
 				this.shoot()
 			}
