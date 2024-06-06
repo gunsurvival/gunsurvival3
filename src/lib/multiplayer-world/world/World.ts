@@ -143,22 +143,20 @@ export abstract class World extends Schema {
 				this.physics.insert(entity.body)
 			}
 			entity.onAddToWorld()
+			entity.readyToRender = true
 		}
 
 		if (this.isClient) {
 			// only run prepare on client or both
-			entity
-				.prepare(options)
-				.then(() => {
-					entity.ee.emit("prepare-done")
-					afterPrepare()
-				})
-				.catch((error) => {
-					console.error(
-						`Error while preparing entity ${entity.constructor.name}:`,
-						error
-					)
-				})
+			;(async () => {
+				await entity.prepare(options)
+				afterPrepare()
+			})().catch((error) => {
+				console.error(
+					`Error while preparing entity ${entity.constructor.name}:`,
+					error
+				)
+			})
 		} else {
 			// server only, do not run prepare
 			afterPrepare()

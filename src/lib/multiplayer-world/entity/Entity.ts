@@ -18,6 +18,7 @@ export abstract class Entity<
 	@type(Vec2) vel = new Vec2()
 	@type(Vec2) acc = new Vec2()
 	@type("float32") rotation = 0
+	readyToRender = false
 	controller: ServerController | undefined
 	controllerRegistry = new Map<string, typeof ServerController>(
 		Object.entries(Controllers) as any
