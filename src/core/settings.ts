@@ -4,6 +4,8 @@ const layer: Array<keyof typeof Entities> = [
 	"Bullet",
 	"Gunner",
 	"GunnerBot",
+	"Spider",
+	"Wolf",
 	"Rock",
 	"Bush",
 ]
