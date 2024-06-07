@@ -11,10 +11,13 @@ export class PixiWorld extends CasualWorld {
 
 	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
 		await this.app.init({
+			antialias: true,
 			width: window.innerWidth,
 			height: window.innerHeight,
 			resizeTo: window,
 		})
+		// @ts-ignore
+		globalThis.__PIXI_APP__ = this.app
 		this.viewport = new Viewport({
 			events: this.app.renderer.events,
 			passiveWheel: false,
@@ -61,6 +64,13 @@ export class PixiWorld extends CasualWorld {
 
 		if (this.isClient) {
 			this.app.ticker.add(tickerCallback)
+			// this.app.ticker.add((ticker) => {
+			// 	this.camera.nextTick(ticker.deltaTime)
+			// 	nextTick(ticker.deltaTime)
+			// })
+			// setInterval(() => {
+			// 	nextTick(1000 / 60)
+			// }, 1000 / 20)
 		} else if (this.isServerOnly()) {
 			delayed = this.room.clock.setInterval(() => {
 				const deltaMS = this.room.clock.deltaTime
@@ -68,7 +78,9 @@ export class PixiWorld extends CasualWorld {
 				while (internal.accumulator >= internal.targetDelta) {
 					internal.elapseTick++
 					internal.accumulator -= internal.targetDelta
+					// console.time("nextTick")
 					nextTick(1000 / 60)
+					// console.timeEnd("nextTick")
 				}
 			}, 1000 / 60)
 		}

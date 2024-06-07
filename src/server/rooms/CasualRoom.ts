@@ -16,16 +16,16 @@ export class CasualRoom extends Room<CasualWorld> {
 			entityClasses: Entities,
 		})
 		this.setState(world)
-		// for (let i = 0; i < 10; i++) {
-		// 	world.addEntity("GunnerBot", {
-		// 		x: Math.random() * 500,
-		// 		y: Math.random() * 500,
-		// 	})
-		// }
+		for (let i = 0; i < 100; i++) {
+			world.addEntity("GunnerBot", {
+				x: Math.random() * 500,
+				y: Math.random() * 500,
+			})
+		}
 
 		const wideX = 1920
 		const wideY = 1080
-		const objects = ["Bush", "Rock"]
+		const objects = ["Bush", "Rock", "Spider", "Wolf"]
 		for (let i = 0; i < 30; i++) {
 			world.addEntity(objects[Math.floor(Math.random() * objects.length)], {
 				pos: {

@@ -9,6 +9,7 @@ import { CasualRoom } from "./rooms/CasualRoom"
 
 export default config({
 	initializeGameServer: (gameServer) => {
+		// gameServer.simulateLatency(0)
 		/**
 		 * Define your room handlers:
 		 */
@@ -20,7 +21,7 @@ export default config({
 		 * Bind your custom express routes here:
 		 * Read more: https://expressjs.com/en/starter/basic-routing.html
 		 */
-		app.get("/hello_world", (req, res) => {
+		app.get("/hello_world", (req: any, res: any) => {
 			res.send("It's time to kick ass and chew bubblegum!")
 		})
 

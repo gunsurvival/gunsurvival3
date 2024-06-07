@@ -9,6 +9,7 @@ import { World } from "@/lib/multiplayer-world/world"
 
 async function connect() {
 	const client = new ColyseusClient("ws://khoakomlem-internal.ddns.net:2567")
+	// const client = new ColyseusClient("ws://localhost:2567")
 	const room = await client.joinOrCreate("casual")
 	console.log("joined room", room.roomId)
 	return { client, room }

@@ -57,6 +57,7 @@ export function createWorld<
 		})
 	}
 
+	// @ts-ignore
 	globalThis.world = world
 	return world as InstanceType<WorldClass>
 }

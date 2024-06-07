@@ -141,6 +141,7 @@ export abstract class World extends Schema {
 			if (entity.body) {
 				;(entity.body as BodyRefEntity).entitiyRef = entity
 				this.physics.insert(entity.body)
+				// console.log("insert", className, this.world.entities.size)
 			}
 			entity.onAddToWorld()
 			entity.readyToRender = true
@@ -256,6 +257,7 @@ export abstract class World extends Schema {
 					"snapshot",
 					(snapshot: ReturnType<this["getSnapshot"]>) => {
 						this.init(snapshot)
+						console.log("snapshot", snapshot)
 						remove()
 						resolve(snapshot)
 					}
@@ -275,6 +277,7 @@ export abstract class World extends Schema {
 		const setupRPC = () => {
 			return roomClient.onMessage<RPCRequest>("rpc", async (message) => {
 				try {
+					// console.log("rpc", message)
 					// TODO: refactor this not to use waitFor, hook on holderMap adding event
 					await waitFor(() => this.__holderMap.has(message.id), {
 						waitForWhat: `holderMap has ${message.id}`,
