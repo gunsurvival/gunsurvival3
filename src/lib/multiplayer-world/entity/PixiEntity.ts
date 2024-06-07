@@ -2,7 +2,7 @@ import { Container } from "pixi.js"
 import { Entity } from "./Entity"
 import type { PixiWorld } from "../world/PixiWorld"
 import { getZIndexByName } from "@/core/settings"
-import { Client } from "../decorators"
+import { Client, Server } from "../decorators"
 
 export abstract class PixiEntity extends Entity<PixiWorld> {
 	abstract display: Container | undefined
@@ -20,6 +20,10 @@ export abstract class PixiEntity extends Entity<PixiWorld> {
 
 			this.display.zIndex = getZIndexByName(this.constructor.name)
 		}
+	}
+
+	nextTick(deltaTime: number): void {
+		this.updateDisplay(deltaTime)
 	}
 
 	onAddToWorld(): void {
@@ -43,4 +47,12 @@ export abstract class PixiEntity extends Entity<PixiWorld> {
 			this.display.rotation = this.rotation
 		}
 	}
+
+	// @Server({ allowClient: true })
+	// destroy(): void {
+	// 	if (this.isClient && this.display) {
+	// 		this.world.viewport.removeChild(this.display)
+	// 	}
+	// 	super.destroy()
+	// }
 }
