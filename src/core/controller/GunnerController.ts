@@ -3,8 +3,14 @@ import { Gunner } from "../entity"
 import { Controller, Server } from "@/lib/multiplayer-world/decorators"
 import { AsyncEE } from "@/lib/AsyncEE"
 import type { PixiWorld } from "@/lib/multiplayer-world/world"
+import { lerpAngle } from "../utils/common"
 
 export class GunnerController extends ServerController<Gunner> {
+	// TODO: refactor this to use generic ServerController
+	get pixiWorld() {
+		return this.world as PixiWorld
+	}
+
 	speed = 0.5
 	state = {
 		up: false,
@@ -12,73 +18,113 @@ export class GunnerController extends ServerController<Gunner> {
 		left: false,
 		right: false,
 		shoot: false,
+		dash: false,
+		walk: false,
+	}
+	mouse = {
+		x: 0,
+		y: 0,
 	}
 	ee = new AsyncEE<{
-		keypress: (key: keyof GunnerController["state"]) => void
+		"state-add": (key: keyof GunnerController["state"]) => void
 		"*": () => void
 	}>()
 
 	setupClient() {
 		console.log("Setting up client")
-		if ((this.world as PixiWorld)?.camera) {
-			;(this.world as PixiWorld).camera.follow(this.target.pos)
+		if (this.pixiWorld?.camera) {
+			this.pixiWorld.camera.follow(this.target.pos)
 		}
 		const handleKeydown = (e: KeyboardEvent) => {
-			if (e.key === "w") {
+			const lowerKey = e.key.toLowerCase()
+			if (lowerKey === "w") {
 				this.enable("up")
 			}
-			if (e.key === "s") {
+			if (lowerKey === "s") {
 				this.enable("down")
 			}
-			if (e.key === "a") {
+			if (lowerKey === "a") {
 				this.enable("left")
 			}
-			if (e.key === "d") {
+			if (lowerKey === "d") {
 				this.enable("right")
 			}
-			if (e.key === " ") {
-				this.enable("shoot")
+			if (lowerKey === " ") {
+				this.enable("dash")
+			}
+			if (lowerKey === "shift") {
+				this.enable("walk")
 			}
 		}
 		const handleKeyup = (e: KeyboardEvent) => {
-			if (e.key === "w") {
+			const lowerKey = e.key.toLowerCase()
+			if (lowerKey === "w") {
 				this.disable("up")
 			}
-			if (e.key === "s") {
+			if (lowerKey === "s") {
 				this.disable("down")
 			}
-			if (e.key === "a") {
+			if (lowerKey === "a") {
 				this.disable("left")
 			}
-			if (e.key === "d") {
+			if (lowerKey === "d") {
 				this.disable("right")
 			}
-			if (e.key === " ") {
-				this.disable("shoot")
+			if (lowerKey === " ") {
+				this.disable("dash")
+			}
+			if (lowerKey === "shift") {
+				this.disable("walk")
 			}
 		}
-		const handleClick = (e: MouseEvent) => {
+		const handleMouseDown = (e: MouseEvent) => {
 			this.enable("shoot")
 		}
-		this.ee.addListener("keypress", (key) => {
-			if (key === "shoot") {
-				this.shoot()
-			}
+		const handleMouseUp = (e: MouseEvent) => {
+			this.disable("shoot")
+		}
+		this.ee.addListener("state-add", (key) => {
+			this.onStateAdd(key)
+		})
+
+		setInterval(() => {
+			const targetScreenPos = this.pixiWorld.viewport.toScreen(this.target.pos)
+			// console.log("targetScreenPos", targetScreenPos)
+			// console.log("this.mouse", this.mouse)
+			this.rotateTarget(
+				Math.atan2(
+					this.mouse.y - targetScreenPos.y,
+					this.mouse.x - targetScreenPos.x
+				)
+			)
+		}, 1000 / 10)
+
+		this.pixiWorld.app.stage.eventMode = "static"
+		this.pixiWorld.app.stage.hitArea = this.pixiWorld.app.screen
+		this.pixiWorld.app.stage.addEventListener("pointermove", (e) => {
+			this.mouse.x = e.x
+			this.mouse.y = e.y
 		})
 
 		document.addEventListener("keydown", handleKeydown)
 		document.addEventListener("keyup", handleKeyup)
+		this.pixiWorld.app.canvas.addEventListener("mousedown", handleMouseDown)
+		this.pixiWorld.app.canvas.addEventListener("mouseup", handleMouseUp)
 
 		return () => {
-			document.removeEventListener("keydown", handleKeydown)
-			document.removeEventListener("keyup", handleKeyup)
+			// this.pixiWorld.app.canvas.removeEventListener("keydown", handleKeydown)
+			// this.pixiWorld.app.canvas.removeEventListener("keyup", handleKeyup)
+			// this.pixiWorld.app.canvas.removeEventListener(
+			// 	"mousedown",
+			// 	handleMouseDown
+			// )
 		}
 	}
 
 	enable(key: keyof typeof this.state) {
 		if (!this.state[key]) {
 			this.setState(key, true)
-			this.ee.emit("keypress", key)
+			this.ee.emit("state-add", key)
 		}
 	}
 
@@ -86,6 +132,11 @@ export class GunnerController extends ServerController<Gunner> {
 		if (this.state[key]) {
 			this.setState(key, false)
 		}
+	}
+
+	@Controller({ serverOnly: true })
+	rotateTarget(rotation: number) {
+		this.target.rotation = rotation
 	}
 
 	@Controller()
@@ -100,7 +151,7 @@ export class GunnerController extends ServerController<Gunner> {
 
 	@Controller({ serverOnly: true })
 	shoot() {
-		const angle = Math.atan2(this.target.vel.y, this.target.vel.x)
+		const angle = this.target.rotation
 		// @ts-ignore
 		this.world.addEntity("Bullet", {
 			pos: {
@@ -111,24 +162,40 @@ export class GunnerController extends ServerController<Gunner> {
 				x: Math.cos(angle) * 40,
 				y: Math.sin(angle) * 40,
 			},
-			rotation: Math.atan2(this.target.vel.y, this.target.vel.x),
+			rotation: angle,
 		})
 	}
 
 	nextTick() {
 		if (this.target) {
+			const speed = this.state.walk ? this.speed / 2 : this.speed
 			if (this.state.up) {
-				this.target.acc.y -= this.speed
+				this.target.acc.y -= speed
 			}
 			if (this.state.down) {
-				this.target.acc.y += this.speed
+				this.target.acc.y += speed
 			}
 			if (this.state.left) {
-				this.target.acc.x -= this.speed
+				this.target.acc.x -= speed
 			}
 			if (this.state.right) {
-				this.target.acc.x += this.speed
+				this.target.acc.x += speed
 			}
+
+			if (this.isClient) {
+				const targetScreenPos = this.pixiWorld.viewport.toScreen(
+					this.target.pos
+				)
+				this.target.rotation = lerpAngle(
+					this.target.rotation,
+					Math.atan2(
+						this.mouse.y - targetScreenPos.y,
+						this.mouse.x - targetScreenPos.x
+					),
+					0.3
+				)
+			}
+
 			this.hookShoot()
 		}
 	}
@@ -139,6 +206,18 @@ export class GunnerController extends ServerController<Gunner> {
 			if (this.world.frameCount % 10 === 0) {
 				this.shoot()
 			}
+		}
+	}
+
+	@Controller()
+	onStateAdd(key: keyof GunnerController["state"]) {
+		if (key === "dash") {
+			const moveVec = {
+				x: (this.state.right ? 1 : 0) - (this.state.left ? 1 : 0),
+				y: (this.state.down ? 1 : 0) - (this.state.up ? 1 : 0),
+			}
+			this.target.vel.x += moveVec.x * 10
+			this.target.vel.y += moveVec.y * 10
 		}
 	}
 }
