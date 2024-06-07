@@ -5,10 +5,11 @@ import { Server } from "@/lib/multiplayer-world/decorators"
 import { type } from "@/lib/multiplayer-world/schema"
 import { Circle } from "detect-collisions"
 import { Bush } from "./Bush"
+import { Bullet } from "./Bullet"
 
 export class Rock extends PixiEntity {
 	@type("number") health = 100
-	body = new Circle({ x: 0, y: 0 }, 80)
+	body = new Circle({ x: 0, y: 0 }, 90)
 	minSize = 0.8
 	maxHealth = 100
 
@@ -34,24 +35,23 @@ export class Rock extends PixiEntity {
 	}
 
 	onCollisionEnter(otherId: string, response: SerializedResponse): void {
-		const len = response.overlapV.len()
-		if (len > 5) {
-			const other = this.world.entities.get(otherId)
-			if (other) {
-				if (len > 10) {
-					this.health -= len / 5
-					other.vel.x = response.overlapV.x * 0.5
-					other.vel.y = response.overlapV.y * 0.5
-				} else {
-					other.destroy()
-				}
+		const other = this.world.entities.get(otherId)
+		if (other instanceof Bullet) {
+			const len = other.vel.len()
+			other.pos.x += response.overlapV.x
+			other.pos.y += response.overlapV.y
+			other.vel.x = response.overlapN.x * len * 0.4
+			other.vel.y = response.overlapN.y * len * 0.4
+
+			if (len > 10) {
+				this.health -= len / 5
 			}
 		}
 	}
 
 	onCollisionStay(otherId: string, response: SerializedResponse): void {
 		const other = this.world.entities.get(otherId)
-		if (other && !(other instanceof Bush)) {
+		if (other && !(other instanceof Bush) && !(other instanceof Rock)) {
 			other.pos.x += response.overlapV.x / 2
 			other.pos.y += response.overlapV.y / 2
 		}
