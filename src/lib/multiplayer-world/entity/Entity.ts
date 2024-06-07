@@ -8,6 +8,7 @@ import { Body } from "detect-collisions"
 import { World } from "../world/World"
 import type { SerializedResponse } from "../utils/dectect-collisions"
 import { lerp, lerpAngle } from "@/core/utils/common"
+import { Rock } from "@/core/entity"
 
 export abstract class Entity<
 	TWorld extends World = World
@@ -17,6 +18,7 @@ export abstract class Entity<
 	@type(Vec2) vel = new Vec2()
 	@type(Vec2) acc = new Vec2()
 	@type("float32") rotation = 0
+	friction = 0.91
 	readyToRender = false
 	controller: ServerController | undefined
 	controllerRegistry = new Map<string, typeof ServerController>(
@@ -115,9 +117,15 @@ export abstract class Entity<
 	}
 
 	@Server()
-	applyForceByVelocity(velocity: Vec2, force: number) {
-		this.acc.x += velocity.x * force
-		this.acc.y += velocity.y * force
+	applyForceByVelocity(
+		velocity: {
+			x: number
+			y: number
+		},
+		force: number
+	) {
+		this.vel.x += velocity.x * force
+		this.vel.y += velocity.y * force
 	}
 
 	@Server()
