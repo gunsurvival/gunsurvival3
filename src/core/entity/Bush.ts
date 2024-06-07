@@ -24,19 +24,27 @@ export class Bush extends PixiEntity {
 
 	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
 		this.display = new Sprite(await Assets.load("images/Bush.png"))
-		super.prepare(options)
 		this.display.width = 200
 		this.display.height = 200
 		this.display.anchor.x = 0.5
 		this.display.anchor.y = 0.5
+		super.prepare(options)
 	}
 
 	nextTick(delta: number) {
 		if (this.isClient) {
 			// shaking the tree
+			let intensity = 0.1
+			if (this.loudness === LOUDNESS.QUIET) {
+				intensity = 0
+			} else if (this.loudness === LOUDNESS.LOUD) {
+				intensity = 0.2
+			} else if (this.loudness === LOUDNESS.NOISE) {
+				intensity = 0.05
+			}
 			let targetRotation =
 				Math.sin((this.world.frameCount - this.frameStartShake) / 10) *
-				(0.1 * this.loudness)
+				intensity
 			this.rotation = lerpAngle(this.rotation, targetRotation, 0.1)
 		}
 
@@ -54,7 +62,7 @@ export class Bush extends PixiEntity {
 			this.loudness !== serverState.loudness &&
 			serverState.loudness >= LOUDNESS.NOISE
 		) {
-			this.frameStartShake = this.world.frameCount
+			this.frameStartShake = this.world.frameCount - 5
 		}
 		this.loudness = serverState.loudness
 	}
@@ -75,9 +83,9 @@ export class Bush extends PixiEntity {
 		const other = this.world.entities.get(otherId)
 
 		if (other) {
-			if (other.vel.len() > 2) {
+			if (other.vel.len() > 4) {
 				this.__loudness = Math.max(this.__loudness, LOUDNESS.LOUD)
-			} else if (other.vel.len() > 0.5) {
+			} else if (other.vel.len() > 2) {
 				this.__loudness = Math.max(this.__loudness, LOUDNESS.NOISE)
 			}
 
