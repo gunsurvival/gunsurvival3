@@ -15,12 +15,17 @@ export class GunnerBot extends Gunner {
 	@Server({ skipSync: true })
 	randomTargetAngle() {
 		this.targetAngle = Math.random() * Math.PI * 2
+		this.rotation = this.targetAngle
 		this.world.addEntity("Bullet", {
-			x: this.pos.x,
-			y: this.pos.y,
-			angle: this.targetAngle,
-			velX: Math.cos(this.targetAngle) * 40,
-			velY: Math.sin(this.targetAngle) * 40,
+			pos: {
+				x: this.pos.x + Math.cos(this.rotation) * 70,
+				y: this.pos.y + Math.sin(this.rotation) * 70,
+			},
+			vel: {
+				x: Math.cos(this.rotation) * 40,
+				y: Math.sin(this.rotation) * 40,
+			},
+			rotation: this.rotation,
 		})
 	}
 
