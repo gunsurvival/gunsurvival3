@@ -1,14 +1,19 @@
 import { Assets, Container, Graphics, Sprite } from "pixi.js"
 import { Circle } from "detect-collisions"
 import type { SerializedResponse } from "@/lib/multiplayer-world/utils/dectect-collisions"
+import { type } from "@/lib/multiplayer-world/schema"
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 import { lerp, lerpAngle } from "../utils/common"
 import anime from "animejs"
+import { Bush } from "./Bush"
+import { Rock } from "./Rock"
+import { Client, Server } from "@/lib/multiplayer-world/decorators"
+import { Bullet } from "./Bullet"
 
 export class Gunner extends PixiEntity {
+	@type("number") health = 100
 	declare display: Container
 	hands!: [Graphics, Graphics]
-	handsPos!: [[number, number], [number, number]]
 	body = new Circle({ x: 0, y: 0 }, 40)
 
 	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
@@ -30,28 +35,23 @@ export class Gunner extends PixiEntity {
 		const wideX = 30
 		const wideY = -28
 		this.hands[0].x = wideX
-		this.hands[0].y = -wideY
+		this.hands[0].y = wideY
 		this.hands[1].x = wideX
-		this.hands[1].y = wideY
-
-		this.handsPos = [
-			[wideX, -wideY],
-			[wideX, wideY],
-		]
+		this.hands[1].y = -wideY
 		const wY = 20
 		const wX = 10
 		anime({
 			targets: this.hands[0],
-			x: this.handsPos[0][0] + 5,
-			y: this.handsPos[0][1] + 10,
+			x: this.hands[0].x + 20,
+			y: this.hands[0].y + 25,
 			direction: "alternate",
 			loop: true,
 			easing: "easeOutSine",
 		})
 		anime({
 			targets: this.hands[1],
-			x: this.handsPos[1][0] + 5,
-			y: this.handsPos[1][1] - 10,
+			x: this.hands[1].x + 20,
+			y: this.hands[1].y - 25,
 			direction: "alternate",
 			loop: true,
 			easing: "easeOutSine",
@@ -75,8 +75,17 @@ export class Gunner extends PixiEntity {
 		this.pos.y = lerp(this.pos.y, serverState.pos.y, 0.1)
 		this.vel.x = lerp(this.vel.x, serverState.vel.x, 0.3)
 		this.vel.y = lerp(this.vel.y, serverState.vel.y, 0.3)
+		this.health = serverState.health
 		if (!this.isControlling) {
 			this.rotation = lerpAngle(this.rotation, serverState.rotation, 0.1)
+		}
+	}
+
+	@Server()
+	onCollisionEnter(otherId: string, response: SerializedResponse): void {
+		const other = this.world.entities.get(otherId)
+		if (other instanceof Bullet) {
+			this.injure(other.vel.len())
 		}
 	}
 
@@ -86,12 +95,50 @@ export class Gunner extends PixiEntity {
 		if (other instanceof Gunner) {
 			this.pos.x -= response.overlapV.x / 2
 			this.pos.y -= response.overlapV.y / 2
+		} else if (
+			!(other instanceof Bush) &&
+			!(other instanceof Rock) &&
+			!(other instanceof Bullet)
+		) {
+			this.pos.x -= response.overlapV.x
+			this.pos.y -= response.overlapV.y
+		}
+	}
+
+	@Server()
+	injure(damage: number): void {
+		this.health -= damage
+		this.emitInjury()
+	}
+
+	@Client()
+	emitInjury() {
+		this.display.tint = 0x990000
+		anime.remove(this.display)
+		anime.remove(this.display.scale)
+		anime({
+			targets: this.display,
+			alpha: 0.5,
+			duration: 150,
+			direction: "alternate",
+			loop: 2,
+			easing: "easeOutSine",
+		}).complete = () => {
+			this.display.tint = 0xffffff
+			this.display.alpha = 1
+		}
+		anime({
+			targets: this.display.scale,
+			x: 1.1,
+			y: 1.1,
+			duration: 150,
+			direction: "alternate",
+			loop: 2,
+			easing: "easeOutSine",
+		}).complete = () => {
+			this.display.scale = 1
 		}
 	}
 }
 
-function easeOutCubic(x: number): number {
-	return x * x * x
-}
-
-console.log("gunner class name", Gunner.name, Gunner)
+// console.log("gunner class name", Gunner.name, Gunner)
