@@ -4,6 +4,8 @@ import { Controller, Server } from "@/lib/multiplayer-world/decorators"
 import { AsyncEE } from "@/lib/AsyncEE"
 import type { PixiWorld } from "@/lib/multiplayer-world/world"
 import { lerpAngle } from "../utils/common"
+import { createHealthBar } from "../graphics/createHealthBar"
+import { Graphics } from "pixi.js"
 
 export class GunnerController extends ServerController<Gunner> {
 	// TODO: refactor this to use generic ServerController
@@ -35,6 +37,24 @@ export class GunnerController extends ServerController<Gunner> {
 		if (this.pixiWorld?.camera) {
 			this.pixiWorld.camera.follow(this.target.pos)
 		}
+		const { container, setHealth, update } = createHealthBar({
+			width: 300,
+			height: 25,
+			borderWeight: 4,
+			round: 6,
+		})
+		container.x = this.pixiWorld.app.screen.width / 2
+		container.y = this.pixiWorld.app.screen.height - container.height - 50
+		// frame.x = this.pixiWorld.app.screen.width / 2
+		// frame.y = this.pixiWorld.app.screen.height - healthBar.height - 50
+		container.pivot.x = container.width / 2
+		container.pivot.y = container.height / 2
+		this.pixiWorld.app.stage.addChild(container, container)
+		this.pixiWorld.app.ticker.add(() => {
+			setHealth(this.target.health / 100)
+			update()
+		})
+
 		const handleKeydown = (e: KeyboardEvent) => {
 			const lowerKey = e.key.toLowerCase()
 			if (lowerKey === "w") {
@@ -152,15 +172,14 @@ export class GunnerController extends ServerController<Gunner> {
 	@Controller({ serverOnly: true })
 	shoot() {
 		const angle = this.target.rotation
-		// @ts-ignore
 		this.world.addEntity("Bullet", {
 			pos: {
-				x: this.target.pos.x + Math.cos(angle) * 70,
-				y: this.target.pos.y + Math.sin(angle) * 70,
+				x: this.target.pos.x + this.target.vel.x * 2 + Math.cos(angle) * 60,
+				y: this.target.pos.y + this.target.vel.y * 2 + Math.sin(angle) * 60,
 			},
 			vel: {
-				x: Math.cos(angle) * 40,
-				y: Math.sin(angle) * 40,
+				x: this.target.vel.x + Math.cos(angle) * 40,
+				y: this.target.vel.y + Math.sin(angle) * 40,
 			},
 			rotation: angle,
 		})
