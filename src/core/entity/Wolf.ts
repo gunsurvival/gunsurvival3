@@ -1,9 +1,11 @@
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 import { Assets, Container, Graphics, Sprite } from "pixi.js"
-import { createHealthBar } from "../graphics/createHealthBar"
+import { createHealthBar } from "../graphics/createMobHealthBar"
 import { Mob } from "./Mob"
+import { Circle } from "detect-collisions"
 
 export class Wolf extends Mob {
+	body = new Circle({ x: 0, y: 0 }, 50)
 	display!: Container
 	healthBar!: Graphics
 	sprite!: Sprite
@@ -28,7 +30,7 @@ export class Wolf extends Mob {
 		this.sprite.anchor.y = 0.5
 		this.display.addChild(this.sprite)
 
-		this.display.addChild(new Graphics().circle(0, 0, 1).fill(0xff0000))
+		// this.display.addChild(new Graphics().circle(0, 0, 1).fill(0xff0000))
 
 		super.prepare(options)
 	}

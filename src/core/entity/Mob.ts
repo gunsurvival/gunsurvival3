@@ -1,6 +1,6 @@
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 import { Assets, Container, Graphics, Sprite } from "pixi.js"
-import { createHealthBar } from "../graphics/createHealthBar"
+import { createHealthBar } from "../graphics/createMobHealthBar"
 import { Server } from "@/lib/multiplayer-world/decorators"
 import { type } from "@/lib/multiplayer-world/schema"
 import { deg2rad } from "detect-collisions"
