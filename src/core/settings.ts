@@ -1,6 +1,7 @@
 import type * as Entities from "./entity"
 
-const layer: Array<keyof typeof Entities> = [
+const layer: Array<string> = [
+	"background",
 	"Bullet",
 	"Gunner",
 	"GunnerBot",

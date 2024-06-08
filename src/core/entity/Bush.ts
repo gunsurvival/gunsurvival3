@@ -7,6 +7,7 @@ import { lerpAngle } from "../utils/common"
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 import type { SerializedResponse } from "@/lib/multiplayer-world/utils/dectect-collisions"
 import debounce from "lodash/debounce"
+import { getZIndexByName } from "../settings"
 
 enum LOUDNESS {
 	QUIET,
@@ -29,6 +30,21 @@ export class Bush extends PixiEntity {
 		this.display.anchor.x = 0.5
 		this.display.anchor.y = 0.5
 		super.prepare(options)
+
+		if (options.pos)
+			for (let i = 0; i < Math.random() * 4; i++) {
+				const leaf1 = new Sprite(await Assets.load("images/leaf1.png"))
+				const leaf2 = new Sprite(await Assets.load("images/leaf2.png"))
+				leaf1.zIndex = getZIndexByName("background")
+				leaf2.zIndex = getZIndexByName("background")
+				const wide = 300
+				leaf1.x = options.pos.x + Math.random() * wide - wide / 2
+				leaf1.y = options.pos.y + Math.random() * wide - wide / 2
+				leaf2.x = options.pos.x + Math.random() * wide - wide / 2
+				leaf2.y = options.pos.y + Math.random() * wide - wide / 2
+				this.world.viewport.addChild(leaf1)
+				this.world.viewport.addChild(leaf2)
+			}
 	}
 
 	nextTick(delta: number) {
