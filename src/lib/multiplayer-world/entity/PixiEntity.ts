@@ -48,11 +48,16 @@ export abstract class PixiEntity extends Entity<PixiWorld> {
 		}
 	}
 
-	// @Server({ allowClient: true })
-	// destroy(): void {
-	// 	if (this.isClient && this.display) {
-	// 		this.world.viewport.removeChild(this.display)
-	// 	}
-	// 	super.destroy()
-	// }
+	@Server({ allowClient: true })
+	destroy(): void {
+		if (this.isClient && this.display) {
+			this.world.viewport.removeChild(this.display)
+		}
+		this.markAsRemove()
+	}
+
+	@Server()
+	markAsRemove() {
+		this.markAsRemoved = true
+	}
 }
