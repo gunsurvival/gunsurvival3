@@ -34,7 +34,8 @@ export class Bullet extends PixiEntity {
 			points: this.tails,
 		})
 		this.rope.tint = "red"
-		this.display.blendMode = "add"
+		this.rope.blendMode = "add"
+		this.display.blendMode = "color-dodge"
 		await super.prepare(options)
 		// this.display.addChild(this.rope)
 		this.world.viewport.addChild(this.rope)
@@ -53,9 +54,15 @@ export class Bullet extends PixiEntity {
 
 	@Client()
 	drawTail() {
+		const velLen = this.vel.len()
+		this.rope.alpha = velLen < 5 ? (velLen / 5) * 1 : 1
+		this.display.alpha = velLen < 3 ? (velLen / 3) * 1 : 1
+
 		this.history.pop()
 		this.history.unshift([this.pos.x, this.pos.y])
-		const tailsSmoother = Smooth(this.history)
+		const tailsSmoother = Smooth(this.history, {
+			method: "nearest",
+		})
 		this.tails.forEach((tail, index) => {
 			const smoothed = tailsSmoother(
 				(index * this.history.length) / this.tails.length
