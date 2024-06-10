@@ -7,7 +7,6 @@ import * as Entities from "@/core/entity"
 import * as Items from "@/core/item"
 import { CasualWorld } from "@/core/world/CasualWorld"
 import { World } from "@/lib/multiplayer-world/world"
-import { HealthBar } from "./health-bar"
 
 async function connect() {
   const wsEndpoint = `ws://${new URL(process.env.DOMAIN).hostname}:${process.env.WS_PORT}`
