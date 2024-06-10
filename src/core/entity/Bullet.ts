@@ -6,6 +6,7 @@ import type { SerializedResponse } from "../../lib/multiplayer-world/utils/decte
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 import { Smooth } from "smooth.ts"
 import { Emitter } from "@barvynkoa/particle-emitter"
+import { Mob } from "./Mob"
 
 export class Bullet extends PixiEntity {
 	display!: Graphics
@@ -76,7 +77,7 @@ export class Bullet extends PixiEntity {
 	onCollisionEnter(otherId: string, response: SerializedResponse): void {
 		// @ts-ignore
 		const other = this.world.entities.get(otherId)
-		if (other instanceof Gunner) {
+		if (other instanceof Gunner || other instanceof Mob) {
 			this.destroy()
 		}
 	}

@@ -1,6 +1,6 @@
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
 import { Assets, Container, Graphics, Sprite } from "pixi.js"
-import { createHealthBar } from "../graphics/createMobHealthBar"
+// import { createHealthBar } from "../graphics/createMobHealthBar"
 import { Mob } from "./Mob"
 import { Circle } from "detect-collisions"
 
