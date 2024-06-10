@@ -1,4 +1,4 @@
-import { Application } from "pixi.js"
+import { Application, Text } from "pixi.js"
 import { CasualWorld } from "./CasualWorld"
 import { Delayed } from "colyseus"
 import { Viewport } from "pixi-viewport"
@@ -8,6 +8,9 @@ export class PixiWorld extends CasualWorld {
 	app = this.clientOnly(() => new Application())
 	viewport!: Viewport
 	camera!: Camera
+	fpsText!: Text
+	pingText!: Text
+	lastLatency = 0
 
 	async prepare(options: Parameters<this["init"]>[0]): Promise<void> {
 		await this.app.init({
@@ -25,6 +28,26 @@ export class PixiWorld extends CasualWorld {
 		})
 		this.camera = new Camera(this.viewport)
 		this.app.stage.addChild(this.viewport)
+		this.fpsText = new Text({ text: "FPS: 60" })
+		this.fpsText.x = this.app.screen.width - 120
+		this.pingText = new Text({ text: "Ping: 0" })
+		this.pingText.x = this.app.screen.width - 120
+		this.pingText.y = 25
+		this.app.stage.addChild(this.fpsText, this.pingText)
+
+		const ping = () => {
+			if (this.isClientOnly()) {
+				this.room.send("ping", Date.now())
+			}
+		}
+
+		if (this.isClientOnly()) {
+			this.room.onMessage("pong", (message) => {
+				this.lastLatency = Date.now() - message
+				setTimeout(ping, 1000)
+			})
+			ping()
+		}
 
 		const gameRoot = document.getElementById("game-root")
 		if (gameRoot) {
@@ -57,6 +80,10 @@ export class PixiWorld extends CasualWorld {
 				internal.accumulator -= internal.targetDelta
 				this.camera.nextTick(this.app.ticker.deltaTime)
 				nextTick(this.app.ticker.deltaTime)
+			}
+			this.fpsText.text = `FPS: ${Math.round(this.app.ticker.FPS)}`
+			if (this.isClientOnly()) {
+				this.pingText.text = `Ping: ${this.lastLatency}`
 			}
 		}
 
