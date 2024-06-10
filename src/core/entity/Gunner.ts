@@ -9,9 +9,14 @@ import { Bush } from "./Bush"
 import { Rock } from "./Rock"
 import { Client, Server } from "@/lib/multiplayer-world/decorators"
 import { Bullet } from "./Bullet"
+import { Backpack } from "../schema/Backpack"
 
 export class Gunner extends PixiEntity {
 	@type("number") health = 100
+	@type("number") currentItemIndex = 0
+	@type(Backpack) backpack = new Backpack()
+	@type("boolean") isDied = false
+
 	declare display: Container
 	hands!: [Graphics, Graphics]
 	body = new Circle({ x: 0, y: 0 }, 40)
@@ -137,6 +142,21 @@ export class Gunner extends PixiEntity {
 			easing: "easeOutSine",
 		}).complete = () => {
 			this.display.scale = 1
+		}
+	}
+
+	@Server()
+	startUse() {
+		const item = this.backpack.index(this.currentItemIndex)
+		if (item) {
+			item.startUse()
+		}
+	}
+
+	stopUse() {
+		const item = this.backpack.index(this.currentItemIndex)
+		if (item) {
+			item.stopUse()
 		}
 	}
 }

@@ -1,11 +1,11 @@
 import { ServerController } from "@/lib/multiplayer-world/ServerController"
 import { Gunner } from "../entity"
-import { Controller, Server } from "@/lib/multiplayer-world/decorators"
+import { Controller } from "@/lib/multiplayer-world/decorators"
 import { AsyncEE } from "@/lib/AsyncEE"
 import type { PixiWorld } from "@/lib/multiplayer-world/world"
 import { lerpAngle } from "../utils/common"
 import { createHealthBar } from "../graphics/createHealthBar"
-import { Graphics } from "pixi.js"
+import { createSlotBar } from "../graphics/createSlotBar"
 
 export class GunnerController extends ServerController<Gunner> {
 	// TODO: refactor this to use generic ServerController
@@ -29,6 +29,7 @@ export class GunnerController extends ServerController<Gunner> {
 	}
 	ee = new AsyncEE<{
 		"state-add": (key: keyof GunnerController["state"]) => void
+		"state-remove": (key: keyof GunnerController["state"]) => void
 		"*": () => void
 	}>()
 
@@ -118,8 +119,13 @@ export class GunnerController extends ServerController<Gunner> {
 		const handleMouseUp = (e: MouseEvent) => {
 			this.disable("shoot")
 		}
+
 		this.ee.addListener("state-add", (key) => {
 			this.onStateAdd(key)
+		})
+
+		this.ee.addListener("state-remove", (key) => {
+			this.onStateRemove(key)
 		})
 
 		setInterval(() => {
@@ -166,6 +172,7 @@ export class GunnerController extends ServerController<Gunner> {
 	disable(key: keyof typeof this.state) {
 		if (this.state[key]) {
 			this.setState(key, false)
+			this.ee.emit("state-remove", key)
 		}
 	}
 
@@ -184,36 +191,20 @@ export class GunnerController extends ServerController<Gunner> {
 		this.state[key] = value
 	}
 
-	@Controller({ serverOnly: true })
-	shoot() {
-		const angle = this.target.rotation
-		this.world.addEntity("Bullet", {
-			pos: {
-				x: this.target.pos.x + this.target.vel.x * 2 + Math.cos(angle) * 60,
-				y: this.target.pos.y + this.target.vel.y * 2 + Math.sin(angle) * 60,
-			},
-			vel: {
-				x: this.target.vel.x + Math.cos(angle) * 40,
-				y: this.target.vel.y + Math.sin(angle) * 40,
-			},
-			rotation: angle,
-		})
-	}
-
 	nextTick() {
 		if (this.target) {
 			const speed = this.state.walk ? this.speed / 2 : this.speed
 			if (this.state.up) {
-				this.target.acc.y -= speed
+				this.target.vel.y -= speed
 			}
 			if (this.state.down) {
-				this.target.acc.y += speed
+				this.target.vel.y += speed
 			}
 			if (this.state.left) {
-				this.target.acc.x -= speed
+				this.target.vel.x -= speed
 			}
 			if (this.state.right) {
-				this.target.acc.x += speed
+				this.target.vel.x += speed
 			}
 
 			if (this.isClient) {
@@ -229,17 +220,6 @@ export class GunnerController extends ServerController<Gunner> {
 					0.3
 				)
 			}
-
-			this.hookShoot()
-		}
-	}
-
-	@Server()
-	hookShoot() {
-		if (this.state.shoot) {
-			if (this.world.frameCount % 10 === 0) {
-				this.shoot()
-			}
 		}
 	}
 
@@ -252,6 +232,17 @@ export class GunnerController extends ServerController<Gunner> {
 			}
 			this.target.vel.x += moveVec.x * 10
 			this.target.vel.y += moveVec.y * 10
+		}
+
+		if (key === "shoot") {
+			this.target.startUse()
+		}
+	}
+
+	@Controller()
+	onStateRemove(key: keyof GunnerController["state"]) {
+		if (key === "shoot") {
+			this.target.stopUse()
 		}
 	}
 }
