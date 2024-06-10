@@ -6,6 +6,10 @@ const nextConfig = {
 		serverMinification: false,
 		swcMinify: false,
 	},
+	env: {
+		DOMAIN: process.env.DOMAIN,
+		WS_PORT: process.env.WS_PORT,
+	},
 }
 
 export default nextConfig

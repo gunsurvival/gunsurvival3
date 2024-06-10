@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --port 5173",
+    "dev": "next dev --port 1810",
     "server": "tsx src/server",
     "watch-server": "nodemon --watch src -e ts --exec tsx src/server",
     "build": "next build --no-mangling",
-    "start": "next start  --port 5173",
+    "start": "next start  --port 1810",
     "lint": "next lint"
   },
   "dependencies": {
