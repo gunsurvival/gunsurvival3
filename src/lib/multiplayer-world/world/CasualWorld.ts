@@ -15,10 +15,6 @@ export abstract class CasualWorld extends World {
 
 	finalizeTick(entity: Entity, delta: number) {
 		entity.finalizeTick(delta)
-		if (entity.acc.len() > 0.01) {
-			entity.vel.x += entity.acc.x
-			entity.vel.y += entity.acc.y
-		}
 
 		if (entity.vel.len() > 0.01) {
 			entity.pos.x += entity.vel.x
@@ -29,14 +25,6 @@ export abstract class CasualWorld extends World {
 		if (entity.vel.len() > 0.01) {
 			entity.vel.x *= entity.friction
 			entity.vel.y *= entity.friction
-		}
-		if (entity.acc.x !== 0) {
-			// prevent unnecessary assign setter (for colyseus performance)
-			entity.acc.x = 0
-		}
-		if (entity.acc.y !== 0) {
-			// prevent unnecessary assign setter (for colyseus performance)
-			entity.acc.y = 0
 		}
 	}
 

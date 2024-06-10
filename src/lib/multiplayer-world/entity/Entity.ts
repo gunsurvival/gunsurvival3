@@ -16,7 +16,6 @@ export abstract class Entity<
 	body: Body | undefined
 	@type(Vec2) pos = new Vec2()
 	@type(Vec2) vel = new Vec2()
-	@type(Vec2) acc = new Vec2()
 	@type("float32") rotation = 0
 	friction = 0.91
 	readyToRender = false
@@ -37,7 +36,6 @@ export abstract class Entity<
 		options: Partial<{
 			pos: { x: number; y: number }
 			vel: { x: number; y: number }
-			acc: { x: number; y: number }
 			rotation: number
 		}>
 	): void {
@@ -50,10 +48,6 @@ export abstract class Entity<
 			this.vel.x = options.vel.x
 			this.vel.y = options.vel.y
 		}
-		if (options.acc) {
-			this.acc.x = options.acc.x
-			this.acc.y = options.acc.y
-		}
 		if (options.rotation) {
 			this.rotation = options.rotation
 		}
@@ -65,7 +59,6 @@ export abstract class Entity<
 		return {
 			pos: { x: this.pos.x, y: this.pos.y },
 			vel: { x: this.vel.x, y: this.vel.y },
-			acc: { x: this.acc.x, y: this.acc.y },
 		}
 	}
 
@@ -77,8 +70,8 @@ export abstract class Entity<
 	reconcileServerState(serverState: typeof this) {
 		this.pos.x = lerp(this.pos.x, serverState.pos.x, 0.1)
 		this.pos.y = lerp(this.pos.y, serverState.pos.y, 0.1)
-		this.vel.x = lerp(this.vel.x, serverState.vel.x, 0.3)
-		this.vel.y = lerp(this.vel.y, serverState.vel.y, 0.3)
+		this.vel.x = lerp(this.vel.x, serverState.vel.x, 0.1)
+		this.vel.y = lerp(this.vel.y, serverState.vel.y, 0.1)
 		this.rotation = lerpAngle(this.rotation, serverState.rotation, 0.1)
 	}
 
@@ -112,8 +105,8 @@ export abstract class Entity<
 
 	@Server()
 	applyForceByAngle(angle: number, force: number) {
-		this.acc.x += Math.cos(angle) * force
-		this.acc.y += Math.sin(angle) * force
+		this.vel.x += Math.cos(angle) * force
+		this.vel.y += Math.sin(angle) * force
 	}
 
 	@Server()
