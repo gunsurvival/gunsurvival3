@@ -37,22 +37,37 @@ export class GunnerController extends ServerController<Gunner> {
 		if (this.pixiWorld?.camera) {
 			this.pixiWorld.camera.follow(this.target.pos)
 		}
-		const { container, setHealth, update } = createHealthBar({
+		const healthBar = createHealthBar({
 			width: 300,
 			height: 25,
 			borderWeight: 4,
 			round: 6,
 		})
-		container.x = this.pixiWorld.app.screen.width / 2
-		container.y = this.pixiWorld.app.screen.height - container.height - 50
-		// frame.x = this.pixiWorld.app.screen.width / 2
-		// frame.y = this.pixiWorld.app.screen.height - healthBar.height - 50
-		container.pivot.x = container.width / 2
-		container.pivot.y = container.height / 2
-		this.pixiWorld.app.stage.addChild(container, container)
+		healthBar.container.x = this.pixiWorld.app.screen.width / 2
+		healthBar.container.y =
+			this.pixiWorld.app.screen.height - healthBar.container.height - 100
+		healthBar.container.pivot.x = healthBar.container.width / 2
+		healthBar.container.pivot.y = healthBar.container.height / 2
+		this.pixiWorld.app.stage.addChild(healthBar.container)
+
+		const slotBar = createSlotBar({
+			amount: 5,
+		})
+		slotBar.container.x = this.pixiWorld.app.screen.width / 2
+		slotBar.container.y =
+			this.pixiWorld.app.screen.height - slotBar.container.height
+		slotBar.container.pivot.x = slotBar.container.width / 2
+		slotBar.container.pivot.y = slotBar.container.height / 2
+		this.pixiWorld.app.stage.addChild(slotBar.container)
+
+		this.target.backpack.ee.addListener("add", (item) => {
+			console.log("Adding item to slot")
+			slotBar.add(item)
+		})
+
 		this.pixiWorld.app.ticker.add(() => {
-			setHealth(this.target.health / 100)
-			update()
+			healthBar.setHealth(this.target.health / 100)
+			healthBar.update()
 		})
 
 		const handleKeydown = (e: KeyboardEvent) => {
