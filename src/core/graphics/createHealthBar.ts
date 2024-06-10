@@ -17,6 +17,7 @@ export function createHealthBar({
 }) {
 	lowPercent = lowPercent || 0.3
 	let healthPercent = 1
+	let isDestroyed = false
 	const container = new Container()
 	const healthBarFrame = new Graphics()
 	const healthBar = new Graphics()
@@ -27,20 +28,23 @@ export function createHealthBar({
 	})
 
 	const update = () => {
+		if (isDestroyed) return
 		healthBar.width = lerp(healthBar.width, width * healthPercent, 0.07)
 	}
 
 	const draw = () => {
+		if (isDestroyed) return
 		healthBar.clear()
 		healthBar.rect(0, 0, width * healthPercent, height).fill("red")
 	}
 
 	const setHealth = (percent: number) => {
+		if (isDestroyed) return
 		if (percent === healthPercent) return
 		healthPercent = percent
 		if (healthPercent < 0) healthPercent = 0
 		if (healthPercent < lowPercent) {
-			anime.remove(healthBar)
+			// anime.remove(healthBar)
 			anime({
 				targets: healthBar,
 				alpha: 0.4,
@@ -55,7 +59,22 @@ export function createHealthBar({
 		}
 	}
 
+	const destroy = () => {
+		if (isDestroyed) return
+		isDestroyed = true
+		container.destroy()
+	}
+
 	draw()
 	container.addChild(healthBarFrame, healthBar)
-	return { container, update, draw, setHealth }
+	return {
+		container,
+		update,
+		draw,
+		setHealth,
+		destroy,
+		isDestroyed: () => {
+			return isDestroyed
+		},
+	}
 }
