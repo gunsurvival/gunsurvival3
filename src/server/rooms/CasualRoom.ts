@@ -5,7 +5,7 @@ import { createWorld } from "@/core/utils/createWorld"
 import { Room, Client, type ClientArray } from "@colyseus/core"
 import { UserData } from "../types/UserData"
 import { CasualWorld } from "@/core/world/CasualWorld"
-import WorldmapGenerator from "worldmap-generator"
+// import WorldmapGenerator from "worldmap-generator"
 
 export class CasualRoom extends Room<CasualWorld> {
 	declare clients: ClientArray<UserData>

@@ -7,7 +7,6 @@ import { Circle } from "detect-collisions"
 export class Wolf extends Mob {
 	body = new Circle({ x: 0, y: 0 }, 50)
 	display!: Container
-	healthBar!: Graphics
 	sprite!: Sprite
 
 	async prepare(options: Parameters<PixiEntity["init"]>[0]): Promise<void> {

@@ -1,10 +1,8 @@
 import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
-import { Assets, Container, Graphics, Sprite } from "pixi.js"
+import { Assets, Container, Sprite } from "pixi.js"
 // import { createHealthBar } from "../graphics/createMobHealthBar"
-import { getZIndexByName } from "../settings"
 import { Mob } from "./Mob"
 import { Circle } from "detect-collisions"
-import { createMobHealthBar } from "../graphics/createMobHealthBar"
 
 export class Spider extends Mob {
 	body = new Circle({ x: 0, y: 0 }, 50)
