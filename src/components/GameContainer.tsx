@@ -10,7 +10,9 @@ import { World } from "@/lib/multiplayer-world/world"
 import { HealthBar } from "./health-bar"
 
 async function connect() {
-	const client = new ColyseusClient("ws://khoakomlem-internal.ddns.net:2567")
+  const wsEndpoint = `ws://${new URL(process.env.DOMAIN).hostname}:${process.env.WS_PORT}`
+  console.log(`Connecting to ${wsEndpoint}...`)
+	const client = new ColyseusClient(wsEndpoint)
 	// const client = new ColyseusClient("ws://localhost:2567")
 	const room = await client.joinOrCreate("casual")
 	console.log("joined room", room.roomId)
