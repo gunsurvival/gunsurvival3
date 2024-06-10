@@ -22,7 +22,7 @@ export class Wolf extends Mob {
 		// this.display.addChild(this.healthBar)
 
 		// spider sprite
-		this.sprite = new Sprite(await Assets.load("images/wolf.png"))
+		this.sprite = new Sprite(await Assets.load("images/Wolf.png"))
 		this.sprite.width = 200
 		this.sprite.height = 200
 		this.sprite.anchor.x = 0.5

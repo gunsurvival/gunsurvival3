@@ -13,7 +13,7 @@ export class Spider extends Mob {
 		this.display = new Container()
 
 		// spider sprite
-		this.sprite = new Sprite(await Assets.load("images/spider.png"))
+		this.sprite = new Sprite(await Assets.load("images/Spider.png"))
 		this.sprite.anchor.x = 0.5
 		this.sprite.anchor.y = 0.5
 		this.sprite.width = 280
