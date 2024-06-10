@@ -86,6 +86,12 @@ export class CasualRoom extends Room<CasualWorld> {
 					y: 100,
 				},
 			})
+			const ak47 = await this.state.addEntity("Ak47", {
+				holderId: entity.id,
+			})
+			setTimeout(() => {
+				;(entity as Entities.Gunner).backpack.add(ak47.id)
+			}, 2000)
 
 			//! Nếu xài addController thì khúc "addControllerById" trong hàm đó nó sẽ broadcast rpc tới tất cả client
 			//! Nên phải xài addControllerById để chỉ gửi rpc tới client đó
