@@ -4,8 +4,10 @@ import { useCallback, useEffect, useState } from "react"
 import { Client as ColyseusClient } from "colyseus.js"
 import { Checkbox } from "./ui/checkbox"
 import * as Entities from "@/core/entity"
+import * as Items from "@/core/item"
 import { CasualWorld } from "@/core/world/CasualWorld"
 import { World } from "@/lib/multiplayer-world/world"
+import { HealthBar } from "./health-bar"
 
 async function connect() {
 	const client = new ColyseusClient("ws://khoakomlem-internal.ddns.net:2567")
@@ -20,7 +22,7 @@ async function createClientWorld() {
 	const world = createWorld(CasualWorld, {
 		mode: "client",
 		room,
-		entityClasses: Entities,
+    entityClasses: { ...Entities, ...Items },
 	})
 	return world
 }
@@ -50,6 +52,8 @@ export const GameContainer = genericMemo(() => {
 					/>
 					<p className="text-white">ENABLE SYNC</p>
 				</div>
+
+        {/* <HealthBar className="fixed left-[50%] bottom-5"></HealthBar> */}
 			</div>
 		</div>
 	)
