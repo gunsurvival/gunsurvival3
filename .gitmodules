@@ -1,0 +1,3 @@
+[submodule "src/lib/multiplayer-world"]
+	path = src/lib/multiplayer-world
+	url = https://github.com/gunsurvival/multiplayer-world
