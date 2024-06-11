@@ -65,7 +65,7 @@
 ## About The Project
 **Gunsurvival 3** is an open-source multiplayer survival game with nice code structure, and performance. It includes fun game modes like battle royale, and survival, ... **Gunsurvival 3** is an implement of [multiplayer-world](https://github.com/gunsurvival/multiplayer-world) - the library provides new way of creating multiplayer game!
 <br>
-For more lib that I use, check out [Acknowledgments](https://github.com/gunsurvival/gunsurvival3/edit/main/README.md#acknowledgments)
+For more lib that I use, check out <a href="#Acknowledgments">Acknowledgments</a>
 
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
