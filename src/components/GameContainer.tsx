@@ -14,7 +14,7 @@ async function connect() {
   console.log(`Connecting to ${wsEndpoint}...`)
 	const client = new ColyseusClient(wsEndpoint)
 	// const client = new ColyseusClient("ws://localhost:2567")
-	const room = await client.joinOrCreate("casual")
+	const room = await client.joinOrCreate<any>("casual")
 	console.log("joined room", room.roomId)
 	return { client, room }
 }
