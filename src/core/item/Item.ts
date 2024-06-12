@@ -1,15 +1,15 @@
-import { PixiEntity } from "@/lib/multiplayer-world/entity/PixiEntity"
-import { Sprite } from "pixi.js"
+import { Sprite } from 'pixi.js';
+import { PixiEntity } from '../entity/PixiEntity';
 
 export abstract class Item extends PixiEntity {
-	sprite!: Sprite
-	init(options: {}): void {}
+  sprite!: Sprite;
+  init(options: {} = {}): void {}
 
-	getSnapshot(): Parameters<this["init"]>[0] {
-		return {}
-	}
+  getSnapshot(): Parameters<this['init']>[0] {
+    return;
+  }
 
-	startUse(): void {}
+  startUse(): void {}
 
-	stopUse(): void {}
+  stopUse(): void {}
 }

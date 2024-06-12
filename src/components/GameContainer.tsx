@@ -1,12 +1,13 @@
-import { createWorld } from "@/core/utils/createWorld"
+import { createWorld } from "multiplayer-world"
 import { genericMemo } from "@/utils/genericMemo"
 import { useCallback, useEffect, useState } from "react"
 import { Client as ColyseusClient } from "colyseus.js"
 import { Checkbox } from "./ui/checkbox"
 import * as Entities from "@/core/entity"
 import * as Items from "@/core/item"
+import * as Controllers from "@/core/controller"
 import { CasualWorld } from "@/core/world/CasualWorld"
-import { World } from "@/lib/multiplayer-world/world"
+import { World } from "multiplayer-world"
 
 async function connect() {
   const wsEndpoint = `ws://${new URL(process.env.DOMAIN).hostname}:${process.env.WS_PORT}`
@@ -24,6 +25,9 @@ async function createClientWorld() {
 		mode: "client",
 		room,
     entityClasses: { ...Entities, ...Items },
+    controllerClasses: {
+      ...Controllers
+    }
 	})
 	return world
 }

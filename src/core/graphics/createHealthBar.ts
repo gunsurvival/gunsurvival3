@@ -44,7 +44,7 @@ export function createHealthBar({
 		healthPercent = percent
 		if (healthPercent < 0) healthPercent = 0
 		if (healthPercent < lowPercent) {
-			// anime.remove(healthBar)
+			anime.remove(healthBar)
 			anime({
 				targets: healthBar,
 				alpha: 0.4,

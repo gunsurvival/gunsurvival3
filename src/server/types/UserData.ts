@@ -1,5 +1,5 @@
-import type { ServerController } from "@/lib/multiplayer-world/ServerController"
+import type { ServerController } from 'multiplayer-world';
 
 export type UserData = {
-	controllers: Map<string, ServerController>
-}
+  controllers: Map<number, ServerController>;
+};
