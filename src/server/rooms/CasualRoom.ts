@@ -59,7 +59,8 @@ export class CasualRoom extends Room<CasualWorld> {
   async onCreate(options: any) {
     const world = createWorld(CasualWorld, {
       mode: 'server',
-      room: this,
+      // @ts-ignore
+      room: this, // TODO: fix typing cho room
       // TODO: làm generic cho entityClasses
       // @ts-ignore
       entityClasses: { ...Entities, ...Items },
