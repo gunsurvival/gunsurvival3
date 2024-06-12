@@ -1,5 +1,6 @@
+import { Camera } from '@/utils/Camera'
 import type { Delayed } from 'colyseus';
-import { Camera, CasualWorld } from 'multiplayer-world';
+import {  CasualWorld } from 'multiplayer-world';
 import { Viewport } from 'pixi-viewport';
 import { Application, Text } from 'pixi.js';
 

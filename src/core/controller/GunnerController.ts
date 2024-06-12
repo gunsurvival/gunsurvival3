@@ -1,9 +1,10 @@
-import type { PixiWorld } from "multiplayer-world";
+
 import { AsyncEE, Controller, ServerController } from "multiplayer-world";
 import { Gunner } from "../entity/Gunner";
 import { createHealthBar } from "../graphics/createHealthBar";
 import { createSlotBar } from "../graphics/createSlotBar";
 import { lerpAngle } from "../utils/common";
+import type { PixiWorld } from "../world/PixiWorld"
 
 export class GunnerController extends ServerController<Gunner> {
   // TODO: refactor this to use generic ServerController
