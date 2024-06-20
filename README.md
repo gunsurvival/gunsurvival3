@@ -10,6 +10,7 @@
 -->
 
 [![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https%3A%2F%2Fgithub.com%2Fgunsurvival%2Fgunsurvival3%2F&count_bg=%2379C83D&title_bg=%23555555&icon=&icon_color=%23E7E7E7&title=Visitors&edge_flat=true)](https://hits.seeyoufarm.com)
+![Time-work](https://wakatime.com/badge/user/592c97c4-15ad-49cb-ac34-d607be35c524/project/b53d0477-2521-4abc-b0f5-71e547eb8cde.svg)
 [![Forks][forks-shield]][forks-url]
 [![Stargazers][stars-shield]][stars-url]
 [![MIT License][license-shield]][license-url]
